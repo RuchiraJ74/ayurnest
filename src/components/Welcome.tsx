@@ -3,9 +3,11 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const Welcome: React.FC = () => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   const handleGetStarted = () => {
     navigate('/signup');
@@ -16,17 +18,17 @@ const Welcome: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-ayur-light p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-ayur-light p-4 overflow-x-hidden">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="text-center mb-12"
+        className="text-center mb-8"
       >
-        <h1 className="text-4xl md:text-5xl font-playfair font-bold text-ayur-secondary mb-4">
+        <h1 className={`${isMobile ? 'text-3xl' : 'text-4xl md:text-5xl'} font-playfair font-bold text-ayur-secondary mb-4`}>
           Welcome to AyurNest
         </h1>
-        <p className="text-lg text-gray-700 max-w-md mx-auto">
+        <p className="text-base text-gray-700 max-w-md mx-auto px-2">
           A home for Ayurvedic wellness. Discover personalized routines, remedies, and products for balanced living.
         </p>
       </motion.div>
@@ -35,12 +37,12 @@ const Welcome: React.FC = () => {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.3, duration: 0.5 }}
-        className="bg-white rounded-xl shadow-lg p-8 w-full max-w-md"
+        className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md"
       >
-        <div className="space-y-6">
+        <div className="space-y-5">
           <Button 
             onClick={handleGetStarted} 
-            className="ayur-button w-full py-6 text-lg"
+            className="ayur-button w-full py-5 text-lg"
           >
             Get Started
           </Button>
@@ -54,7 +56,7 @@ const Welcome: React.FC = () => {
           <Button 
             onClick={handleLogin} 
             variant="outline" 
-            className="w-full border-ayur-primary text-ayur-primary hover:bg-ayur-light py-6 text-lg"
+            className="w-full border-ayur-primary text-ayur-primary hover:bg-ayur-light py-5 text-lg"
           >
             Login
           </Button>
@@ -65,7 +67,7 @@ const Welcome: React.FC = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.8, duration: 0.5 }}
-        className="mt-8 text-sm text-gray-500"
+        className="mt-6 text-sm text-gray-500"
       >
         Your journey to balanced wellness begins here
       </motion.p>

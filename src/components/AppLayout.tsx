@@ -3,10 +3,12 @@ import React from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Home, Calendar, BookOpen, ShoppingBag, User } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const AppLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   
   const tabItems = [
     { label: 'Home', icon: Home, path: '/home' },
@@ -18,7 +20,7 @@ const AppLayout: React.FC = () => {
   
   return (
     <div className="min-h-screen flex flex-col bg-ayur-light">
-      <main className="flex-1 pb-20">
+      <main className="flex-1 pb-20 overflow-x-hidden">
         <Outlet />
       </main>
       
@@ -38,8 +40,8 @@ const AppLayout: React.FC = () => {
                 isActive ? 'bottom-tab-active' : 'bottom-tab-inactive'
               }`}
             >
-              <item.icon size={20} />
-              <span className="mt-1">{item.label}</span>
+              <item.icon size={isMobile ? 18 : 20} />
+              <span className="mt-1 text-xs">{item.label}</span>
               {isActive && (
                 <motion.div
                   layoutId="active-tab-indicator"

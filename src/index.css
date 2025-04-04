@@ -38,31 +38,63 @@
     --radius: 0.8rem;
   }
 
+  html, body {
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none;
+    overflow-x: hidden;
+    width: 100%;
+    position: relative;
+  }
+
   body {
     @apply bg-ayur-light text-ayur-text font-sans min-h-screen;
     font-family: 'Inter', sans-serif;
+    -webkit-overflow-scrolling: touch;
+    overflow-x: hidden;
   }
 
   h1, h2, h3, h4, h5, h6 {
     @apply font-playfair;
   }
+
+  input, textarea, select, button {
+    appearance: none;
+    -webkit-appearance: none;
+    border-radius: var(--radius);
+  }
+
+  /* Safe area insets for iOS */
+  @supports (padding-top: env(safe-area-inset-top)) {
+    .safe-top {
+      padding-top: env(safe-area-inset-top);
+    }
+    .safe-bottom {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    .safe-left {
+      padding-left: env(safe-area-inset-left);
+    }
+    .safe-right {
+      padding-right: env(safe-area-inset-right);
+    }
+  }
 }
 
 @layer components {
   .ayur-card {
-    @apply bg-white rounded-xl shadow-md p-5 hover:shadow-lg transition-shadow;
+    @apply bg-white rounded-xl shadow-md p-4 md:p-5 hover:shadow-lg transition-shadow;
   }
 
   .ayur-button {
-    @apply bg-ayur-primary text-white px-6 py-3 rounded-full hover:bg-ayur-secondary transition-colors font-medium;
+    @apply bg-ayur-primary text-white px-5 py-3 rounded-full hover:bg-ayur-secondary transition-colors font-medium active:scale-95 transform;
   }
 
   .ayur-container {
-    @apply max-w-md mx-auto px-4 py-6;
+    @apply max-w-md mx-auto px-4 py-4 md:py-6;
   }
   
   .ayur-category-icon {
-    @apply w-16 h-16 flex items-center justify-center rounded-full bg-white text-ayur-primary shadow-md mx-auto mb-3;
+    @apply w-14 h-14 flex items-center justify-center rounded-full bg-white text-ayur-primary shadow-md mx-auto mb-3;
   }
   
   .ayur-header {
@@ -70,7 +102,7 @@
   }
   
   .bottom-tab {
-    @apply flex flex-col items-center justify-center py-2 px-3 text-xs font-medium;
+    @apply flex flex-col items-center justify-center py-1 px-2 text-xs font-medium relative;
   }
   
   .bottom-tab-active {
@@ -80,4 +112,61 @@
   .bottom-tab-inactive {
     @apply text-gray-500;
   }
+
+  /* Mobile-specific styles */
+  .mobile-container {
+    @apply px-4 py-3 max-w-md mx-auto;
+  }
+
+  .mobile-section {
+    @apply mb-4;
+  }
+
+  .mobile-card {
+    @apply rounded-xl shadow-sm p-3;
+  }
+
+  .mobile-header {
+    @apply text-xl font-semibold mb-3 font-playfair;
+  }
+
+  .mobile-nav {
+    @apply fixed bottom-0 left-0 right-0 bg-white shadow-top h-16 flex items-center justify-around z-50;
+  }
+
+  /* Improved tap targets for mobile */
+  .mobile-tap-target {
+    @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
+  }
+}
+
+/* Adding bottom safe area on iOS for the bottom navigation */
+.bottom-safe {
+  padding-bottom: max(16px, env(safe-area-inset-bottom, 16px));
+}
+
+/* Shadow for top navigation */
+.shadow-top {
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Full-page transitions for mobile */
+.page-transition-enter {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.page-transition-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 300ms, transform 300ms;
+}
+
+.page-transition-exit {
+  opacity: 1;
+}
+
+.page-transition-exit-active {
+  opacity: 0;
+  transition: opacity 300ms;
 }
