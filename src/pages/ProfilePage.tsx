@@ -3,22 +3,17 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { User, Bell, Heart, Clock, LogOut, ChevronRight, Settings } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { User, Bell, Heart, Clock, LogOut, ChevronRight, Settings, Info, ShoppingBag } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 
 const ProfilePage: React.FC = () => {
   const { user, logout } = useAuth();
-  const { toast } = useToast();
   const navigate = useNavigate();
   
   const handleLogout = () => {
     logout();
-    toast({
-      title: "Logged out",
-      description: "You have been successfully logged out.",
-    });
     navigate('/');
   };
   
@@ -27,12 +22,9 @@ const ProfilePage: React.FC = () => {
       <motion.div 
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-6 flex justify-between items-center"
+        className="mb-6"
       >
         <h1 className="text-2xl font-bold font-playfair text-ayur-secondary">Profile</h1>
-        <Button variant="ghost" size="icon">
-          <Settings size={20} />
-        </Button>
       </motion.div>
       
       <motion.div 
@@ -65,108 +57,118 @@ const ProfilePage: React.FC = () => {
           </div>
         </Card>
       </motion.div>
-      
-      <div className="space-y-4">
-        <motion.div 
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <Card>
-            <div className="divide-y">
-              <ProfileMenuItem 
-                icon={Bell} 
-                title="Notifications" 
-                description="Manage your alerts and notifications"
-                onClick={() => navigate('/notifications')}
-              />
-              <ProfileMenuItem 
-                icon={Heart} 
-                title="My Favorites" 
-                description="View your saved remedies and products"
-                onClick={() => navigate('/favorites')}
-              />
-              <ProfileMenuItem 
-                icon={Clock} 
-                title="Order History" 
-                description="Check your previous orders"
-                onClick={() => navigate('/orders')}
-              />
+
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+      >
+        <Tabs defaultValue="notifications" className="w-full">
+          <TabsList className="grid grid-cols-3 gap-2 mb-4">
+            <TabsTrigger value="notifications">Notifications</TabsTrigger>
+            <TabsTrigger value="favorites">Favorites</TabsTrigger>
+            <TabsTrigger value="orders">Orders</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="notifications" className="space-y-4">
+            <Card className="p-4">
+              <div className="flex items-center gap-3 mb-4">
+                <Bell className="text-ayur-primary" />
+                <h3 className="font-medium">Your dosha reading is ready</h3>
+              </div>
+              <p className="text-sm text-gray-500">Check your personalized wellness recommendations.</p>
+            </Card>
+            <Card className="p-4">
+              <div className="flex items-center gap-3 mb-4">
+                <ShoppingBag className="text-ayur-primary" />
+                <h3 className="font-medium">Order delivered</h3>
+              </div>
+              <p className="text-sm text-gray-500">Your recent order has been delivered.</p>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="favorites" className="space-y-4">
+            <Card className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Heart className="text-ayur-primary" />
+                  <div>
+                    <h3 className="font-medium">Ashwagandha Root Powder</h3>
+                    <p className="text-sm text-gray-500">Saved to favorites</p>
+                  </div>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => navigate('/shop')}>
+                  View
+                </Button>
+              </div>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="orders" className="space-y-4">
+            <Card className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <Clock className="text-ayur-primary" />
+                  <div>
+                    <h3 className="font-medium">Order #AY123</h3>
+                    <p className="text-sm text-gray-500">Delivered on April 15, 2024</p>
+                  </div>
+                </div>
+                <ChevronRight className="text-gray-400" />
+              </div>
+              <div className="text-sm text-gray-600">
+                2 items • $45.98
+              </div>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </motion.div>
+
+      <motion.div 
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="mt-6 space-y-4"
+      >
+        <Card>
+          <div className="divide-y">
+            <div className="p-4">
+              <div className="flex items-center justify-between cursor-pointer" onClick={() => {}}>
+                <div className="flex items-center gap-3">
+                  <Settings size={20} className="text-ayur-primary" />
+                  <div>
+                    <h3 className="font-medium">Account Settings</h3>
+                    <p className="text-sm text-gray-500">Manage your preferences</p>
+                  </div>
+                </div>
+                <ChevronRight size={20} className="text-gray-400" />
+              </div>
             </div>
-          </Card>
-        </motion.div>
-        
-        <motion.div 
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <Card>
-            <div className="divide-y">
-              <ProfileMenuItem 
-                icon={Clock} 
-                title="Dosha Assessment" 
-                description="Retake your Dosha quiz"
-                onClick={() => navigate('/dosha-test')}
-              />
-              <ProfileMenuItem 
-                icon={Settings} 
-                title="Account Settings" 
-                description="Manage your account preferences"
-                onClick={() => {}}
-              />
-              <ProfileMenuItem 
-                icon={Bell} 
-                title="About AyurNest" 
-                description="Learn more about our mission"
-                onClick={() => {}}
-              />
+            
+            <div className="p-4">
+              <div className="flex items-center justify-between cursor-pointer" onClick={() => {}}>
+                <div className="flex items-center gap-3">
+                  <Info size={20} className="text-ayur-primary" />
+                  <div>
+                    <h3 className="font-medium">About AyurNest</h3>
+                    <p className="text-sm text-gray-500">Learn about our mission</p>
+                  </div>
+                </div>
+                <ChevronRight size={20} className="text-gray-400" />
+              </div>
             </div>
-          </Card>
-        </motion.div>
-        
-        <motion.div 
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
+          </div>
+        </Card>
+
+        <Button 
+          variant="outline" 
+          className="w-full border-red-300 text-red-500 hover:bg-red-50 hover:text-red-600"
+          onClick={handleLogout}
         >
-          <Button 
-            variant="outline" 
-            className="w-full border-red-300 text-red-500 hover:bg-red-50 hover:text-red-600"
-            onClick={handleLogout}
-          >
-            <LogOut className="mr-2 h-4 w-4" /> Logout
-          </Button>
-        </motion.div>
-      </div>
+          <LogOut className="mr-2 h-4 w-4" /> Logout
+        </Button>
+      </motion.div>
     </div>
-  );
-};
-
-interface ProfileMenuItemProps {
-  icon: React.ElementType;
-  title: string;
-  description: string;
-  onClick: () => void;
-}
-
-const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({ icon: Icon, title, description, onClick }) => {
-  return (
-    <button 
-      className="flex items-center justify-between w-full p-4 hover:bg-gray-50 transition-colors"
-      onClick={onClick}
-    >
-      <div className="flex items-center gap-3">
-        <div className="bg-ayur-light rounded-full p-2">
-          <Icon size={18} className="text-ayur-primary" />
-        </div>
-        <div className="text-left">
-          <h3 className="font-medium">{title}</h3>
-          <p className="text-xs text-gray-500">{description}</p>
-        </div>
-      </div>
-      <ChevronRight size={18} className="text-gray-400" />
-    </button>
   );
 };
 

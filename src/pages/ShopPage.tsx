@@ -105,7 +105,7 @@ const ShopPage: React.FC = () => {
                 className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
                 onClick={() => navigate(`/shop/${product.id}`)}
               >
-                <div className="relative pt-[100%]">
+                <div className="aspect-square relative w-full">
                   <img 
                     src={product.image} 
                     alt={product.name} 
