@@ -1,136 +1,126 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useToast } from '@/hooks/use-toast';
-import { toast } from '@/components/ui/sonner';
 
-// Define the Dosha type to match the specific string union type expected
-type DoshaType = 'vata' | 'pitta' | 'kapha' | 'vata-pitta' | 'pitta-kapha' | 'vata-kapha' | 'tridosha';
-
-// User interface with properly typed dosha
-export interface User {
+// Define user type
+type User = {
   id: string;
   username: string;
   email: string;
-  dosha: DoshaType;
-}
+  dosha?: 'vata' | 'pitta' | 'kapha' | 'vata-pitta' | 'pitta-kapha' | 'vata-kapha' | 'tridosha';
+};
 
-interface AuthContextType {
+// Define context type
+type AuthContextType = {
   user: User | null;
-  isAuthenticated: boolean;
+  loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
   signup: (username: string, email: string, password: string) => Promise<void>;
-  updateUserDosha: (dosha: DoshaType) => void;
-}
+  logout: () => void;
+  updateUserDosha: (dosha: string) => void;
+};
 
-// Mock users data with proper typing
-const mockUsers = [
+// Create context
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// Mock users data (simulating backend)
+const MOCK_USERS = [
   {
     id: '1',
     username: 'demo',
-    email: 'demo@ayurnest.com',
-    password: 'password',
-    dosha: 'vata-pitta' as DoshaType
+    email: 'demo@example.com',
+    password: 'password123',
+    dosha: 'vata-pitta',
   },
-  {
-    id: '2',
-    username: 'test',
-    email: 'test@ayurnest.com',
-    password: 'password',
-    dosha: 'kapha' as DoshaType
-  }
 ];
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const navigate = useNavigate();
-  const { toast: useToastHook } = useToast();
-  
-  // Check for saved user on initial load
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    const savedUser = localStorage.getItem('ayurnest_user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
+    // Check if user is stored in localStorage
+    const storedUser = localStorage.getItem('ayurnest_user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
     }
+    setLoading(false);
   }, []);
-  
-  // Login function
+
+  // Mock login functionality
   const login = async (email: string, password: string) => {
-    // Simulate API request
-    const foundUser = mockUsers.find(u => u.email === email && u.password === password);
+    setLoading(true);
+    
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const foundUser = MOCK_USERS.find(u => u.email === email && u.password === password);
     
     if (foundUser) {
-      const { password, ...userWithoutPassword } = foundUser;
-      setUser(userWithoutPassword);
-      localStorage.setItem('ayurnest_user', JSON.stringify(userWithoutPassword));
-      toast("Login successful", {
-        description: `Welcome back, ${foundUser.username}!`,
-      });
-      navigate('/home');
+      const userData = {
+        id: foundUser.id,
+        username: foundUser.username,
+        email: foundUser.email,
+        dosha: foundUser.dosha,
+      };
+      setUser(userData);
+      localStorage.setItem('ayurnest_user', JSON.stringify(userData));
     } else {
       throw new Error('Invalid credentials');
     }
-  };
-  
-  // Logout function
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('ayurnest_user');
-    navigate('/');
-  };
-  
-  // Signup function
-  const signup = async (username: string, email: string, password: string) => {
-    // Simulate API request
-    const existingUser = mockUsers.find(u => u.email === email);
     
-    if (existingUser) {
-      throw new Error('Email already registered');
+    setLoading(false);
+  };
+
+  // Mock signup functionality
+  const signup = async (username: string, email: string, password: string) => {
+    setLoading(true);
+    
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Check if email already exists
+    if (MOCK_USERS.some(u => u.email === email)) {
+      throw new Error('Email already in use');
     }
     
-    // Create a new user with default dosha type
     const newUser = {
-      id: (mockUsers.length + 1).toString(),
+      id: Math.random().toString(36).substr(2, 9),
       username,
       email,
       password,
-      dosha: 'tridosha' as DoshaType
     };
     
-    // In a real app, we would send this to an API
-    mockUsers.push(newUser);
+    // In a real app, this would be a server-side operation
+    MOCK_USERS.push(newUser);
     
-    const { password: _, ...userWithoutPassword } = newUser;
-    setUser(userWithoutPassword);
-    localStorage.setItem('ayurnest_user', JSON.stringify(userWithoutPassword));
+    const userData = {
+      id: newUser.id,
+      username: newUser.username,
+      email: newUser.email,
+    };
     
-    // Redirect to dosha test to complete profile
-    navigate('/dosha-test');
+    setUser(userData);
+    localStorage.setItem('ayurnest_user', JSON.stringify(userData));
+    setLoading(false);
   };
-  
-  // Update user dosha
-  const updateUserDosha = (dosha: DoshaType) => {
+
+  // Logout functionality
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem('ayurnest_user');
+  };
+
+  // Update user's dosha
+  const updateUserDosha = (dosha: string) => {
     if (user) {
       const updatedUser = { ...user, dosha };
       setUser(updatedUser);
       localStorage.setItem('ayurnest_user', JSON.stringify(updatedUser));
     }
   };
-  
+
   return (
-    <AuthContext.Provider 
-      value={{ 
-        user, 
-        isAuthenticated: !!user, 
-        login, 
-        logout, 
-        signup,
-        updateUserDosha
-      }}
-    >
+    <AuthContext.Provider value={{ user, loading, login, signup, logout, updateUserDosha }}>
       {children}
     </AuthContext.Provider>
   );
