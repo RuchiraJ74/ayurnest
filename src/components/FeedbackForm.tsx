@@ -22,7 +22,9 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit }) => {
     e.preventDefault();
     
     if (!user) {
-      toast.error("Please log in to submit feedback");
+      toast("Not logged in", {
+        description: "Please log in to submit feedback"
+      });
       return;
     }
     
@@ -49,9 +51,15 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit }) => {
         if (onSubmit) {
           onSubmit();
         }
+
+        toast("Feedback submitted", {
+          description: "Thank you for your feedback!"
+        });
       }
     } catch (error) {
-      toast.error("Failed to submit feedback");
+      toast("Submission failed", {
+        description: "Failed to submit feedback"
+      });
     } finally {
       setIsSubmitting(false);
     }

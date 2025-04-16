@@ -17,7 +17,9 @@ const ContactSupportForm: React.FC = () => {
     e.preventDefault();
     
     if (!user) {
-      toast.error("Please log in to contact support");
+      toast("Not logged in", {
+        description: "Please log in to contact support"
+      });
       return;
     }
     
@@ -32,10 +34,15 @@ const ContactSupportForm: React.FC = () => {
     
     try {
       await submitSupportMessage(`${subject}: ${message}`);
+      toast("Message sent", {
+        description: "Your message has been sent to our support team"
+      });
       setSubject('');
       setMessage('');
     } catch (error) {
-      toast.error("Failed to send message");
+      toast("Sending failed", {
+        description: "Failed to send message"
+      });
     } finally {
       setIsSubmitting(false);
     }

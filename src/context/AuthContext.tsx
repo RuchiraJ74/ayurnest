@@ -173,7 +173,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('ayurnest_user', JSON.stringify(userData));
       toast("Logged in successfully!");
     } else {
-      toast.error("Invalid credentials");
+      toast("Invalid credentials", {
+        description: "Please check your email and password",
+      });
       throw new Error('Invalid credentials');
     }
     
@@ -189,7 +191,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     // Check if email already exists
     if (MOCK_USERS.some(u => u.email === email)) {
-      toast.error("Email already in use");
+      toast("Email already in use", {
+        description: "Please use a different email address",
+      });
       throw new Error('Email already in use');
     }
     
@@ -229,7 +233,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     setUser(userData);
     localStorage.setItem('ayurnest_user', JSON.stringify(userData));
-    toast.success("Account created successfully!");
+    toast("Account created successfully!");
     setLoading(false);
   };
 
@@ -237,7 +241,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     setUser(null);
     localStorage.removeItem('ayurnest_user');
-    toast.success("Logged out successfully");
+    toast("Logged out successfully");
   };
 
   // Update user's dosha
@@ -249,7 +253,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
       setUser(updatedUser);
       localStorage.setItem('ayurnest_user', JSON.stringify(updatedUser));
-      toast.success("Dosha updated successfully");
+      toast("Dosha updated successfully");
     }
   };
   
@@ -263,19 +267,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const userExists = MOCK_USERS.some(u => u.email === email);
     
     if (!userExists) {
-      toast.error("No account found with this email");
+      toast("No account found", {
+        description: "No account found with this email",
+      });
       throw new Error('No account found with this email');
     }
     
     // In a real app, this would send a password reset email
-    toast.success("Password reset link sent to your email");
+    toast("Password reset link sent", {
+      description: "Check your email for the reset link",
+    });
     setLoading(false);
   };
   
   // Update user profile
   const updateUserProfile = async (username?: string, email?: string) => {
     if (!user) {
-      toast.error("You must be logged in to update your profile");
+      toast("Not logged in", {
+        description: "You must be logged in to update your profile",
+      });
       throw new Error('You must be logged in to update your profile');
     }
     
@@ -295,7 +305,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Check if email is already in use by another user
       if (email !== user.email && MOCK_USERS.some(u => u.email === email)) {
         setLoading(false);
-        toast.error("Email is already in use");
+        toast("Email already in use", {
+          description: "This email is already registered to another account",
+        });
         throw new Error('Email is already in use');
       }
       updatedUser.email = email;
@@ -310,14 +322,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     setUser(updatedUser);
     localStorage.setItem('ayurnest_user', JSON.stringify(updatedUser));
-    toast.success("Changes saved!");
+    toast("Profile updated", {
+      description: "Your profile has been updated successfully",
+    });
     setLoading(false);
   };
   
   // Change password
   const changePassword = async (currentPassword: string, newPassword: string) => {
     if (!user) {
-      toast.error("You must be logged in to change your password");
+      toast("Not logged in", {
+        description: "You must be logged in to change your password",
+      });
       throw new Error('You must be logged in to change your password');
     }
     
@@ -330,14 +346,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const mockUserIndex = MOCK_USERS.findIndex(u => u.id === user.id);
     if (mockUserIndex === -1 || MOCK_USERS[mockUserIndex].password !== currentPassword) {
       setLoading(false);
-      toast.error("Current password is incorrect");
+      toast("Incorrect password", {
+        description: "Your current password is incorrect",
+      });
       throw new Error('Current password is incorrect');
     }
     
     // Update the password in mock data
     MOCK_USERS[mockUserIndex].password = newPassword;
     
-    toast.success("Password changed successfully");
+    toast("Password changed", {
+      description: "Your password has been changed successfully",
+    });
     setLoading(false);
   };
 
@@ -353,13 +373,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
       setUser(updatedUser);
       localStorage.setItem('ayurnest_user', JSON.stringify(updatedUser));
-      toast.success("Appearance settings updated!");
       
       // Update the document with the appropriate class for dark mode
       if (updatedUser.preferences.darkMode) {
         document.documentElement.classList.add('dark');
+        toast("Dark mode enabled");
       } else {
         document.documentElement.classList.remove('dark');
+        toast("Light mode enabled");
       }
     }
   };
@@ -372,7 +393,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Favorites handling
   const addToFavorites = (productId: string) => {
     if (!user) {
-      toast.error("You must be logged in to add favorites");
+      toast("Not logged in", {
+        description: "You must be logged in to add favorites",
+      });
       return;
     }
 
@@ -389,7 +412,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       setUser(updatedUser);
       localStorage.setItem('ayurnest_user', JSON.stringify(updatedUser));
-      toast.success("Added to favorites!");
+      toast("Added to favorites!");
     }
   };
 
@@ -407,7 +430,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     setUser(updatedUser);
     localStorage.setItem('ayurnest_user', JSON.stringify(updatedUser));
-    toast.success("Removed from favorites!");
+    toast("Removed from favorites!");
   };
 
   const isFavorite = (productId: string): boolean => {
@@ -417,7 +440,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Add an order to user history
   const addOrder = (orderData: Omit<Order, 'id' | 'date'>) => {
     if (!user) {
-      toast.error("You must be logged in to place an order");
+      toast("Not logged in", {
+        description: "You must be logged in to place an order",
+      });
       return;
     }
 
@@ -438,13 +463,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setUser(updatedUser);
     localStorage.setItem('ayurnest_user', JSON.stringify(updatedUser));
-    toast.success("Order placed successfully!");
+    toast("Order placed successfully!");
   };
 
   // Add feedback
   const addFeedback = (feedbackData: Omit<Feedback, 'id' | 'userId' | 'username' | 'date'>): Feedback | undefined => {
     if (!user) {
-      toast.error("You must be logged in to submit feedback");
+      toast("Not logged in", {
+        description: "You must be logged in to submit feedback",
+      });
       return undefined;
     }
 
@@ -457,7 +484,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     GLOBAL_FEEDBACK.push(newFeedback);
-    toast.success("Feedback submitted!");
+    toast("Feedback submitted successfully!");
     return newFeedback;
   };
 
@@ -469,7 +496,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Submit support message
   const submitSupportMessage = async (message: string): Promise<void> => {
     if (!user) {
-      toast.error("You must be logged in to contact support");
+      toast("Not logged in", {
+        description: "You must be logged in to contact support",
+      });
       throw new Error('You must be logged in to contact support');
     }
     
@@ -477,7 +506,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     // In a real app, this would send the message to a support system
-    toast.success("Support message sent!");
+    toast("Message sent", {
+      description: "Your support message has been sent successfully",
+    });
   };
 
   // Check if dark mode should be enabled on initial load
@@ -524,4 +555,3 @@ export const useAuth = () => {
   }
   return context;
 };
-

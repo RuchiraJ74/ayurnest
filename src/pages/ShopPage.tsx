@@ -55,8 +55,14 @@ const ShopPage: React.FC = () => {
     
     if (isFavorite(productId)) {
       removeFromFavorites(productId);
+      toast("Removed from favorites", {
+        description: "Item removed from your favorites"
+      });
     } else {
       addToFavorites(productId);
+      toast("Added to favorites", {
+        description: "Item added to your favorites"
+      });
     }
   };
   
@@ -229,6 +235,7 @@ const ShopPage: React.FC = () => {
                   <button 
                     className={`absolute top-2 left-2 p-1.5 rounded-full ${isFavorite(product.id) ? 'bg-red-500 text-white' : 'bg-white/80 text-gray-500'}`}
                     onClick={(e) => handleFavoriteToggle(e, product.id)}
+                    aria-label={isFavorite(product.id) ? "Remove from favorites" : "Add to favorites"}
                   >
                     <Heart size={16} fill={isFavorite(product.id) ? "white" : "none"} />
                   </button>
