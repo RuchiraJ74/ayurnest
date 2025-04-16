@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { products, categories, getProductsByCategory } from '@/data/productData';
 import { Search, ShoppingBag, Filter, X } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -18,6 +18,16 @@ const ShopPage: React.FC = () => {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 50]);
   const { totalItems } = useCart();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Check if there's a search query in the URL
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const searchQuery = params.get('search');
+    if (searchQuery) {
+      setSearchTerm(searchQuery);
+    }
+  }, [location.search]);
   
   const filteredProducts = getProductsByCategory(selectedCategory).filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -176,11 +186,15 @@ const ShopPage: React.FC = () => {
                 className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
                 onClick={() => navigate(`/shop/${product.id}`)}
               >
-                <div className="relative aspect-square">
+                <div className="relative aspect-square bg-gray-100">
                   <img 
                     src={product.image} 
                     alt={product.name} 
                     className="absolute inset-0 w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).onerror = null;
+                      (e.target as HTMLImageElement).src = "https://via.placeholder.com/400?text=AyurNest";
+                    }}
                   />
                   <Badge className="absolute top-2 right-2 bg-ayur-primary">${product.price.toFixed(2)}</Badge>
                 </div>

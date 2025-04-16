@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShoppingBag, Calendar, Heart, Activity, Search, Bell } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
@@ -8,10 +8,15 @@ import { getRoutineByDosha } from '@/data/routineData';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 const HomePage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   
   const dosha = user?.dosha || 'tridosha';
   const doshaProfile = doshaProfiles[dosha as keyof typeof doshaProfiles];
@@ -30,6 +35,42 @@ const HomePage: React.FC = () => {
   
   const currentRoutine = routine[timeOfDay];
   
+  // Mock notifications
+  const notifications = [
+    {
+      id: '1',
+      title: 'New Ayurvedic Recipe',
+      description: 'Check out our new seasonal Ayurvedic recipe for boosting immunity!',
+      date: '2023-04-15',
+      read: false
+    },
+    {
+      id: '2',
+      title: 'Order Shipped',
+      description: 'Your order #AYR-3842 has been shipped and will arrive in 2-3 days.',
+      date: '2023-04-12',
+      read: true
+    },
+    {
+      id: '3',
+      title: 'Weekly Wellness Tip',
+      description: 'Morning oil pulling can help remove toxins and improve oral health.',
+      date: '2023-04-10',
+      read: true
+    }
+  ];
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Perform search action
+    if (searchTerm.trim()) {
+      // Navigate to shop page with search term
+      navigate(`/shop?search=${encodeURIComponent(searchTerm)}`);
+      setSearchOpen(false);
+      setSearchTerm('');
+    }
+  };
+  
   return (
     <div className="pb-6">
       {/* Header */}
@@ -39,14 +80,84 @@ const HomePage: React.FC = () => {
           <p className="text-sm text-gray-500">Personalized wellness</p>
         </div>
         <div className="flex gap-3">
-          <button className="p-2 rounded-full hover:bg-gray-100">
+          <button 
+            className="p-2 rounded-full hover:bg-gray-100"
+            onClick={() => setSearchOpen(true)}
+          >
             <Search size={20} />
           </button>
-          <button className="p-2 rounded-full hover:bg-gray-100">
+          <button 
+            className="p-2 rounded-full hover:bg-gray-100 relative"
+            onClick={() => setNotificationsOpen(true)}
+          >
             <Bell size={20} />
+            {notifications.some(n => !n.read) && (
+              <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+            )}
           </button>
         </div>
       </div>
+      
+      {/* Search Dialog */}
+      <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Search AyurNest</DialogTitle>
+            <DialogDescription>
+              Find products, remedies, and wellness tips
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSearch} className="space-y-4 mt-4">
+            <div className="flex items-center space-x-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                <Input
+                  type="text"
+                  placeholder="What are you looking for?"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                  autoFocus
+                />
+              </div>
+              <Button type="submit">Search</Button>
+            </div>
+            <div className="pt-4">
+              <h4 className="text-sm font-medium mb-2">Quick Links</h4>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" onClick={() => navigate('/shop')}>Shop</Button>
+                <Button variant="outline" size="sm" onClick={() => navigate('/remedies')}>Remedies</Button>
+                <Button variant="outline" size="sm" onClick={() => navigate('/daily-routine')}>Daily Routine</Button>
+                <Button variant="outline" size="sm" onClick={() => navigate('/diet')}>Diet</Button>
+              </div>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Notifications Dialog */}
+      <Dialog open={notificationsOpen} onOpenChange={setNotificationsOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Notifications</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-2 max-h-[60vh] overflow-y-auto">
+            {notifications.map(notification => (
+              <div 
+                key={notification.id} 
+                className={`p-3 rounded-lg border ${!notification.read ? 'border-l-4 border-l-ayur-primary' : ''}`}
+              >
+                <h3 className="font-medium">{notification.title}</h3>
+                <p className="text-sm text-gray-600 mt-1">{notification.description}</p>
+                <p className="text-xs text-gray-400 mt-2">{notification.date}</p>
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-end mt-2">
+            <Button onClick={() => navigate('/profile?tab=notifications')}>View All</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       
       {/* Welcome Section */}
       <motion.div 

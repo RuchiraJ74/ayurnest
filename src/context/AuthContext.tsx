@@ -20,6 +20,8 @@ type AuthContextType = {
   logout: () => void;
   updateUserDosha: (dosha: string) => void;
   resetPassword: (email: string) => Promise<void>;
+  updateUserProfile: (username?: string, email?: string) => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
 };
 
 // Create context
@@ -165,9 +167,90 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     toast.success("Password reset link sent to your email");
     setLoading(false);
   };
+  
+  // Update user profile
+  const updateUserProfile = async (username?: string, email?: string) => {
+    if (!user) {
+      toast.error("You must be logged in to update your profile");
+      throw new Error('You must be logged in to update your profile');
+    }
+    
+    setLoading(true);
+    
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // In a real app, this would validate and update the user profile in the database
+    const updatedUser = { ...user };
+    
+    if (username) {
+      updatedUser.username = username;
+    }
+    
+    if (email) {
+      // Check if email is already in use by another user
+      if (email !== user.email && MOCK_USERS.some(u => u.email === email)) {
+        setLoading(false);
+        toast.error("Email is already in use");
+        throw new Error('Email is already in use');
+      }
+      updatedUser.email = email;
+    }
+    
+    // Update mock user data
+    const mockUserIndex = MOCK_USERS.findIndex(u => u.id === user.id);
+    if (mockUserIndex !== -1) {
+      if (username) MOCK_USERS[mockUserIndex].username = username;
+      if (email) MOCK_USERS[mockUserIndex].email = email;
+    }
+    
+    setUser(updatedUser);
+    localStorage.setItem('ayurnest_user', JSON.stringify(updatedUser));
+    toast.success("Profile updated successfully");
+    setLoading(false);
+  };
+  
+  // Change password
+  const changePassword = async (currentPassword: string, newPassword: string) => {
+    if (!user) {
+      toast.error("You must be logged in to change your password");
+      throw new Error('You must be logged in to change your password');
+    }
+    
+    setLoading(true);
+    
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Find the user in mock data and verify current password
+    const mockUserIndex = MOCK_USERS.findIndex(u => u.id === user.id);
+    if (mockUserIndex === -1 || MOCK_USERS[mockUserIndex].password !== currentPassword) {
+      setLoading(false);
+      toast.error("Current password is incorrect");
+      throw new Error('Current password is incorrect');
+    }
+    
+    // Update the password in mock data
+    MOCK_USERS[mockUserIndex].password = newPassword;
+    
+    toast.success("Password changed successfully");
+    setLoading(false);
+  };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout, updateUserDosha, resetPassword }}>
+    <AuthContext.Provider 
+      value={{ 
+        user, 
+        loading, 
+        login, 
+        signup, 
+        logout, 
+        updateUserDosha, 
+        resetPassword,
+        updateUserProfile,
+        changePassword
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

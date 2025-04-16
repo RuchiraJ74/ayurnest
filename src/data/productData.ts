@@ -8,7 +8,7 @@ export const products: Product[] = [
     description: "Nourishing blend of herbs and oils for healthy hair growth and scalp care.",
     price: 24.99,
     category: "Oils & Soaps",
-    image: "https://images.unsplash.com/photo-1598532213005-004c5491e929?auto=format&fit=crop&q=80&w=400&h=400"
+    image: "https://elephantrunk.in/cdn/shop/products/neelibhringadioil.jpg?v=1634629682"
   },
   {
     id: "2",
@@ -16,7 +16,7 @@ export const products: Product[] = [
     description: "Organic Ashwagandha root extract for stress relief and immunity support.",
     price: 19.99,
     category: "Supplements",
-    image: "https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&q=80&w=400&h=400"
+    image: "https://m.media-amazon.com/images/I/71wHFO9yJgL._AC_UF1000,1000_QL80_.jpg"
   },
   {
     id: "3",
@@ -40,7 +40,7 @@ export const products: Product[] = [
     description: "Pure aloe vera gel for skin care, burns, and hydration.",
     price: 12.99,
     category: "Skin Care",
-    image: "https://images.unsplash.com/photo-1596467746588-53300e703a24?auto=format&fit=crop&q=80&w=400&h=400"
+    image: "https://smytten-image.gumlet.io/discover_product/1617178472_DRIV0060AB1.jpg"
   },
   {
     id: "6",
@@ -56,7 +56,7 @@ export const products: Product[] = [
     description: "Traditional herb for mental clarity, focus and cognitive function.",
     price: 22.99,
     category: "Supplements",
-    image: "https://images.unsplash.com/photo-1611930022073-44532eebe363?auto=format&fit=crop&q=80&w=400&h=400"
+    image: "https://m.media-amazon.com/images/I/61jQ19mUDhL.jpg"
   },
   {
     id: "8",
@@ -64,7 +64,7 @@ export const products: Product[] = [
     description: "Natural antibacterial soap for clear skin and infection prevention.",
     price: 8.99,
     category: "Oils & Soaps",
-    image: "https://images.unsplash.com/photo-1607006430242-da4d66358b05?auto=format&fit=crop&q=80&w=400&h=400"
+    image: "https://m.media-amazon.com/images/I/71aKkz0nskL._AC_UF1000,1000_QL80_.jpg"
   },
   {
     id: "9",
@@ -96,7 +96,7 @@ export const products: Product[] = [
     description: "Calming herbs to promote deep, restful sleep naturally.",
     price: 18.99,
     category: "Teas",
-    image: "https://images.unsplash.com/photo-1576092762791-dd9e2220b1c0?auto=format&fit=crop&q=80&w=400&h=400"
+    image: "https://m.media-amazon.com/images/I/71k-CMfTa+L._AC_UF1000,1000_QL80_.jpg"
   }
 ];
 

@@ -1,12 +1,19 @@
 
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { User, Bell, Heart, Clock, LogOut, ChevronRight, Settings, Info, ShoppingBag } from 'lucide-react';
+import { User, Bell, Heart, Clock, LogOut, ChevronRight, Settings, Info, ShoppingBag, Edit, Lock, Sliders, Package, FileText, Truck, MessageSquare } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { motion } from 'framer-motion';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { products } from '@/data/productData';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // Define tab content interfaces
 interface NotificationItem {
@@ -32,90 +39,213 @@ interface OrderItem {
   status: 'processing' | 'shipped' | 'delivered' | 'cancelled';
 }
 
-// Mock data for tabs
-const mockNotifications: NotificationItem[] = [
-  {
-    id: '1',
-    title: 'New Ayurvedic Recipe',
-    description: 'Check out our new seasonal Ayurvedic recipe for boosting immunity!',
-    date: '2023-04-15',
-    read: false
-  },
-  {
-    id: '2',
-    title: 'Order Shipped',
-    description: 'Your order #AYR-3842 has been shipped and will arrive in 2-3 days.',
-    date: '2023-04-12',
-    read: true
-  },
-  {
-    id: '3',
-    title: 'Weekly Wellness Tip',
-    description: 'Morning oil pulling can help remove toxins and improve oral health.',
-    date: '2023-04-10',
-    read: true
-  }
-];
+// User state mock storage
+const USER_STORE_KEY = 'ayurnest_user_preferences';
 
-const mockFavorites: FavoriteItem[] = [
-  {
-    id: '1',
-    name: 'Turmeric Golden Milk',
-    type: 'remedy',
-    image: 'https://images.unsplash.com/photo-1578520046912-d44eb6294f90?auto=format&fit=crop&q=80&w=400&h=300'
-  },
-  {
-    id: '2',
-    name: 'Ashwagandha Capsules',
-    type: 'product',
-    image: 'https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&q=80&w=400&h=400'
-  },
-  {
-    id: '3',
-    name: 'Coconut-Aloe Hair Mask',
-    type: 'remedy',
-    image: 'https://images.unsplash.com/photo-1585751119414-ef2636f8aede?auto=format&fit=crop&q=80&w=400&h=300'
-  }
-];
+const getUserPreferences = () => {
+  const stored = localStorage.getItem(USER_STORE_KEY);
+  if (!stored) return {
+    favorites: [],
+    notifications: [],
+    orders: [],
+    darkMode: false,
+    emailNotifications: true,
+    pushNotifications: true
+  };
+  return JSON.parse(stored);
+};
 
-const mockOrders: OrderItem[] = [
-  {
-    id: 'AYR-3842',
-    items: ['Ashwagandha Capsules', 'Neem & Tulsi Soap'],
-    total: 28.98,
-    date: '2023-04-12',
-    status: 'shipped'
-  },
-  {
-    id: 'AYR-3721',
-    items: ['Ayurvedic Hair Oil', 'Brahmi Brain Tonic', 'Copper Water Bottle'],
-    total: 77.97,
-    date: '2023-03-28',
-    status: 'delivered'
-  },
-  {
-    id: 'AYR-3615',
-    items: ['Herbal Digestive Tea', 'Triphala Powder'],
-    total: 30.98,
-    date: '2023-03-15',
-    status: 'delivered'
-  }
-];
+const saveUserPreferences = (prefs: any) => {
+  localStorage.setItem(USER_STORE_KEY, JSON.stringify(prefs));
+};
 
 const ProfilePage: React.FC = () => {
   const { user, logout } = useAuth();
-  const { toast } = useToast();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<string>('profile');
-  const [showSettings, setShowSettings] = useState<boolean>(false);
+  const location = useLocation();
   
+  // Get tab from URL query param
+  const queryParams = new URLSearchParams(location.search);
+  const tabFromUrl = queryParams.get('tab');
+  
+  const [activeTab, setActiveTab] = useState<string>(tabFromUrl || 'profile');
+  const [showSettings, setShowSettings] = useState<boolean>(false);
+  const [showFeedbackDialog, setShowFeedbackDialog] = useState<boolean>(false);
+  const [showAppearanceDialog, setShowAppearanceDialog] = useState<boolean>(false);
+  const [showPrivacyPolicy, setShowPrivacyPolicy] = useState<boolean>(false);
+  const [showTermsOfService, setShowTermsOfService] = useState<boolean>(false);
+  const [feedback, setFeedback] = useState<string>('');
+  const [rating, setRating] = useState<number>(0);
+  
+  // User preferences
+  const [userPrefs, setUserPrefs] = useState(() => getUserPreferences());
+  
+  // Form states for account settings
+  const [username, setUsername] = useState(user?.username || '');
+  const [email, setEmail] = useState(user?.email || '');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showEditUsername, setShowEditUsername] = useState(false);
+  const [showEditEmail, setShowEditEmail] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
+
+  // Order tracking
+  const [showOrderTracking, setShowOrderTracking] = useState(false);
+  const [trackingOrder, setTrackingOrder] = useState<OrderItem | null>(null);
+  
+  useEffect(() => {
+    // Update the URL when the tab changes
+    if (activeTab !== 'profile') {
+      navigate(`/profile?tab=${activeTab}`, { replace: true });
+    } else {
+      navigate('/profile', { replace: true });
+    }
+  }, [activeTab, navigate]);
+  
+  useEffect(() => {
+    // Update active tab from URL when it changes
+    if (tabFromUrl) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [tabFromUrl]);
+  
+  // Toggle favorite
+  const toggleFavorite = (item: FavoriteItem) => {
+    const favorites = [...userPrefs.favorites];
+    const index = favorites.findIndex(fav => fav.id === item.id && fav.type === item.type);
+    
+    if (index >= 0) {
+      favorites.splice(index, 1);
+      toast.success("Removed from favorites");
+    } else {
+      favorites.push(item);
+      toast.success("Added to favorites");
+    }
+    
+    const updatedPrefs = { ...userPrefs, favorites };
+    setUserPrefs(updatedPrefs);
+    saveUserPreferences(updatedPrefs);
+  };
+  
+  // Add a product to favorites
+  const addProductToFavorites = (productId: string) => {
+    const product = products.find(p => p.id === productId);
+    if (product) {
+      const favoriteItem: FavoriteItem = {
+        id: product.id,
+        name: product.name,
+        type: 'product',
+        image: product.image
+      };
+      toggleFavorite(favoriteItem);
+    }
+  };
+  
+  // Logout functionality
   const handleLogout = () => {
     logout();
-    toast({
-      title: "Logged out",
-      description: "You have been successfully logged out.",
-    });
     navigate('/');
+  };
+  
+  // Submit feedback
+  const submitFeedback = () => {
+    if (feedback.trim() === '') {
+      toast.error("Please enter your feedback");
+      return;
+    }
+    
+    toast.success("Thank you for your feedback!");
+    setFeedback('');
+    setRating(0);
+    setShowFeedbackDialog(false);
+  };
+  
+  // Save appearance settings
+  const saveAppearanceSettings = () => {
+    const updatedPrefs = { 
+      ...userPrefs, 
+      darkMode: !userPrefs.darkMode 
+    };
+    setUserPrefs(updatedPrefs);
+    saveUserPreferences(updatedPrefs);
+    toast.success("Appearance settings saved");
+    setShowAppearanceDialog(false);
+  };
+  
+  // Save account settings
+  const saveUsername = () => {
+    if (username.trim() === '') {
+      toast.error("Username cannot be empty");
+      return;
+    }
+    
+    // In a real app, this would make an API call
+    toast.success("Username updated successfully");
+    setShowEditUsername(false);
+  };
+  
+  const saveEmail = () => {
+    if (email.trim() === '' || !email.includes('@')) {
+      toast.error("Please enter a valid email");
+      return;
+    }
+    
+    // In a real app, this would make an API call
+    toast.success("Email updated successfully");
+    setShowEditEmail(false);
+  };
+  
+  const changePassword = () => {
+    if (currentPassword.trim() === '' || newPassword.trim() === '' || confirmPassword.trim() === '') {
+      toast.error("All fields are required");
+      return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+      toast.error("New passwords don't match");
+      return;
+    }
+    
+    // In a real app, this would verify the current password and update
+    toast.success("Password changed successfully");
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setShowChangePassword(false);
+  };
+  
+  // Save notification preferences
+  const toggleEmailNotifications = () => {
+    const updatedPrefs = { 
+      ...userPrefs, 
+      emailNotifications: !userPrefs.emailNotifications 
+    };
+    setUserPrefs(updatedPrefs);
+    saveUserPreferences(updatedPrefs);
+    toast.success("Email notification preferences updated");
+  };
+  
+  const togglePushNotifications = () => {
+    const updatedPrefs = { 
+      ...userPrefs, 
+      pushNotifications: !userPrefs.pushNotifications 
+    };
+    setUserPrefs(updatedPrefs);
+    saveUserPreferences(updatedPrefs);
+    toast.success("Push notification preferences updated");
+  };
+  
+  // View order details
+  const viewOrderDetails = (order: OrderItem) => {
+    // In a real app this would fetch the order details
+    toast.success(`Viewing details for order #${order.id}`);
+  };
+  
+  // Track order
+  const trackOrder = (order: OrderItem) => {
+    setTrackingOrder(order);
+    setShowOrderTracking(true);
   };
 
   const renderTabContent = () => {
@@ -124,8 +254,8 @@ const ProfilePage: React.FC = () => {
         return (
           <div className="space-y-4">
             <h2 className="text-xl font-medium mb-4">Notifications</h2>
-            {mockNotifications.length > 0 ? (
-              mockNotifications.map(notification => (
+            {userPrefs.notifications && userPrefs.notifications.length > 0 ? (
+              userPrefs.notifications.map((notification: NotificationItem) => (
                 <Card key={notification.id} className={`p-4 ${!notification.read ? 'border-l-4 border-l-ayur-primary' : ''}`}>
                   <div className="flex justify-between items-start">
                     <div>
@@ -140,7 +270,11 @@ const ProfilePage: React.FC = () => {
                 </Card>
               ))
             ) : (
-              <p className="text-center text-gray-500 py-8">No notifications yet</p>
+              <Card className="p-8 text-center">
+                <Bell className="mx-auto text-gray-400 mb-3" size={32} />
+                <h3 className="font-medium text-lg mb-2">No notifications yet</h3>
+                <p className="text-gray-500">You'll see your notifications here when you receive them.</p>
+              </Card>
             )}
           </div>
         );
@@ -149,10 +283,10 @@ const ProfilePage: React.FC = () => {
         return (
           <div className="space-y-4">
             <h2 className="text-xl font-medium mb-4">My Favorites</h2>
-            {mockFavorites.length > 0 ? (
+            {userPrefs.favorites && userPrefs.favorites.length > 0 ? (
               <div className="grid grid-cols-1 gap-4">
-                {mockFavorites.map(favorite => (
-                  <Card key={favorite.id} className="overflow-hidden">
+                {userPrefs.favorites.map((favorite: FavoriteItem) => (
+                  <Card key={`${favorite.id}-${favorite.type}`} className="overflow-hidden">
                     <div className="flex">
                       <div className="w-20 h-20 flex-shrink-0">
                         <img 
@@ -168,21 +302,42 @@ const ProfilePage: React.FC = () => {
                             {favorite.type === 'product' ? 'Product' : 'Remedy'}
                           </span>
                         </div>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="text-ayur-primary mt-2 p-0 h-auto"
-                          onClick={() => navigate(favorite.type === 'product' ? `/shop/${favorite.id}` : `/remedies/${favorite.id}`)}
-                        >
-                          View details
-                        </Button>
+                        <div className="flex mt-2 space-x-2">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-ayur-primary p-0 h-auto"
+                            onClick={() => navigate(favorite.type === 'product' ? `/shop/${favorite.id}` : `/remedies/${favorite.id}`)}
+                          >
+                            View details
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-red-500 p-0 h-auto"
+                            onClick={() => toggleFavorite(favorite)}
+                          >
+                            Remove
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </Card>
                 ))}
               </div>
             ) : (
-              <p className="text-center text-gray-500 py-8">No favorites saved yet</p>
+              <Card className="p-8 text-center">
+                <Heart className="mx-auto text-gray-400 mb-3" size={32} />
+                <h3 className="font-medium text-lg mb-2">No favorites yet</h3>
+                <p className="text-gray-500">Start adding products and remedies to your favorites.</p>
+                <Button
+                  variant="outline"
+                  className="mt-4"
+                  onClick={() => navigate('/shop')}
+                >
+                  Browse Products
+                </Button>
+              </Card>
             )}
           </div>
         );
@@ -191,8 +346,8 @@ const ProfilePage: React.FC = () => {
         return (
           <div className="space-y-4">
             <h2 className="text-xl font-medium mb-4">Order History</h2>
-            {mockOrders.length > 0 ? (
-              mockOrders.map(order => (
+            {userPrefs.orders && userPrefs.orders.length > 0 ? (
+              userPrefs.orders.map((order: OrderItem) => (
                 <Card key={order.id} className="p-4">
                   <div className="flex justify-between items-start mb-3">
                     <h3 className="font-medium">Order #{order.id}</h3>
@@ -219,10 +374,7 @@ const ProfilePage: React.FC = () => {
                     <Button 
                       variant="outline" 
                       size="sm"
-                      onClick={() => toast({
-                        title: "Order Details",
-                        description: `Viewing details for order #${order.id}`,
-                      })}
+                      onClick={() => viewOrderDetails(order)}
                     >
                       View Details
                     </Button>
@@ -230,10 +382,7 @@ const ProfilePage: React.FC = () => {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => toast({
-                          title: "Tracking Information",
-                          description: "Your order is on the way and will arrive in 2-3 days.",
-                        })}
+                        onClick={() => trackOrder(order)}
                       >
                         Track Order
                       </Button>
@@ -242,7 +391,18 @@ const ProfilePage: React.FC = () => {
                 </Card>
               ))
             ) : (
-              <p className="text-center text-gray-500 py-8">No orders placed yet</p>
+              <Card className="p-8 text-center">
+                <Package className="mx-auto text-gray-400 mb-3" size={32} />
+                <h3 className="font-medium text-lg mb-2">No orders yet</h3>
+                <p className="text-gray-500">Your order history will appear here once you make a purchase.</p>
+                <Button
+                  variant="outline"
+                  className="mt-4"
+                  onClick={() => navigate('/shop')}
+                >
+                  Shop Now
+                </Button>
+              </Card>
             )}
           </div>
         );
@@ -261,12 +421,9 @@ const ProfilePage: React.FC = () => {
                     <Button 
                       variant="ghost" 
                       size="sm"
-                      onClick={() => toast({
-                        title: "Edit Username",
-                        description: "Username edit functionality coming soon.",
-                      })}
+                      onClick={() => setShowEditUsername(true)}
                     >
-                      Edit
+                      <Edit size={16} className="mr-1" /> Edit
                     </Button>
                   </div>
                 </div>
@@ -277,12 +434,9 @@ const ProfilePage: React.FC = () => {
                     <Button 
                       variant="ghost" 
                       size="sm"
-                      onClick={() => toast({
-                        title: "Edit Email",
-                        description: "Email edit functionality coming soon.",
-                      })}
+                      onClick={() => setShowEditEmail(true)}
                     >
-                      Edit
+                      <Edit size={16} className="mr-1" /> Edit
                     </Button>
                   </div>
                 </div>
@@ -293,12 +447,9 @@ const ProfilePage: React.FC = () => {
                     <Button 
                       variant="ghost" 
                       size="sm"
-                      onClick={() => toast({
-                        title: "Change Password",
-                        description: "Password change functionality coming soon.",
-                      })}
+                      onClick={() => setShowChangePassword(true)}
                     >
-                      Change
+                      <Lock size={16} className="mr-1" /> Change
                     </Button>
                   </div>
                 </div>
@@ -306,32 +457,32 @@ const ProfilePage: React.FC = () => {
             </Card>
             <Card className="p-4">
               <h3 className="font-medium mb-3">Notification Preferences</h3>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span>Email Notifications</span>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => toast({
-                      title: "Notification Settings",
-                      description: "Notification preferences updated.",
-                    })}
-                  >
-                    Configure
-                  </Button>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="email-notifications">Email Notifications</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Receive updates via email
+                    </p>
+                  </div>
+                  <Switch
+                    id="email-notifications"
+                    checked={userPrefs.emailNotifications}
+                    onCheckedChange={toggleEmailNotifications}
+                  />
                 </div>
-                <div className="flex justify-between items-center">
-                  <span>Push Notifications</span>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => toast({
-                      title: "Notification Settings",
-                      description: "Notification preferences updated.",
-                    })}
-                  >
-                    Configure
-                  </Button>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="push-notifications">Push Notifications</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Receive alerts on your device
+                    </p>
+                  </div>
+                  <Switch
+                    id="push-notifications"
+                    checked={userPrefs.pushNotifications}
+                    onCheckedChange={togglePushNotifications}
+                  />
                 </div>
               </div>
             </Card>
@@ -384,24 +535,64 @@ const ProfilePage: React.FC = () => {
                   <Button 
                     variant="outline" 
                     className="mx-2"
-                    onClick={() => toast({
-                      title: "Privacy Policy",
-                      description: "Viewing privacy policy...",
-                    })}
+                    onClick={() => setShowPrivacyPolicy(true)}
                   >
                     Privacy Policy
                   </Button>
                   <Button 
                     variant="outline" 
                     className="mx-2"
-                    onClick={() => toast({
-                      title: "Terms of Service",
-                      description: "Viewing terms of service...",
-                    })}
+                    onClick={() => setShowTermsOfService(true)}
                   >
                     Terms of Service
                   </Button>
                 </div>
+              </div>
+            </Card>
+          </div>
+        );
+      
+      case 'feedback':
+        return (
+          <div className="space-y-4">
+            <h2 className="text-xl font-medium mb-4">Feedback</h2>
+            <Card className="p-4">
+              <h3 className="font-medium mb-3">Share Your Thoughts</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                We'd love to hear your feedback about AyurNest. Your insights help us improve the app experience for everyone.
+              </p>
+              
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="rating" className="block mb-2">Rate your experience</Label>
+                  <div className="flex space-x-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setRating(star)}
+                        className={`text-2xl ${rating >= star ? 'text-yellow-400' : 'text-gray-300'}`}
+                      >
+                        ★
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                <div>
+                  <Label htmlFor="feedback" className="block mb-2">Your feedback</Label>
+                  <Textarea
+                    id="feedback"
+                    placeholder="Tell us what you like or what we could improve..."
+                    value={feedback}
+                    onChange={(e) => setFeedback(e.target.value)}
+                    rows={5}
+                  />
+                </div>
+                
+                <Button onClick={submitFeedback} className="w-full">
+                  Submit Feedback
+                </Button>
               </div>
             </Card>
           </div>
@@ -431,7 +622,7 @@ const ProfilePage: React.FC = () => {
                     onClick={() => setActiveTab('favorites')}
                   />
                   <ProfileMenuItem 
-                    icon={ShoppingBag} 
+                    icon={Package} 
                     title="Order History" 
                     description="Check your previous orders"
                     onClick={() => setActiveTab('orders')}
@@ -468,14 +659,32 @@ const ProfilePage: React.FC = () => {
                 </div>
               </Card>
             </motion.div>
+            
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+            >
+              <Card>
+                <div className="divide-y">
+                  <ProfileMenuItem 
+                    icon={Truck} 
+                    title="Order Tracking" 
+                    description="Track the status of your deliveries"
+                    onClick={() => navigate('/order-tracking')}
+                  />
+                  <ProfileMenuItem 
+                    icon={MessageSquare} 
+                    title="Send Feedback" 
+                    description="Share your thoughts and suggestions"
+                    onClick={() => setActiveTab('feedback')}
+                  />
+                </div>
+              </Card>
+            </motion.div>
           </div>
         );
     }
-  };
-  
-  const handleLogoutConfirm = () => {
-    logout();
-    navigate('/');
   };
   
   const renderSettingsMenu = () => {
@@ -499,10 +708,7 @@ const ProfilePage: React.FC = () => {
             <button 
               className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
               onClick={() => {
-                toast({
-                  title: "Theme Settings",
-                  description: "Theme settings coming soon",
-                });
+                setShowAppearanceDialog(true);
                 setShowSettings(false);
               }}
             >
@@ -513,7 +719,7 @@ const ProfilePage: React.FC = () => {
             <button 
               className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
               onClick={() => {
-                handleLogoutConfirm();
+                handleLogout();
                 setShowSettings(false);
               }}
             >
@@ -609,9 +815,375 @@ const ProfilePage: React.FC = () => {
           </Button>
         </motion.div>
       )}
+      
+      {/* Edit Username Dialog */}
+      <Dialog open={showEditUsername} onOpenChange={setShowEditUsername}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Username</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditUsername(false)}>Cancel</Button>
+            <Button onClick={saveUsername}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Edit Email Dialog */}
+      <Dialog open={showEditEmail} onOpenChange={setShowEditEmail}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Email</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditEmail(false)}>Cancel</Button>
+            <Button onClick={saveEmail}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Change Password Dialog */}
+      <Dialog open={showChangePassword} onOpenChange={setShowChangePassword}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Change Password</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="current-password">Current Password</Label>
+              <Input
+                id="current-password"
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-password">New Password</Label>
+              <Input
+                id="new-password"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirm-password">Confirm New Password</Label>
+              <Input
+                id="confirm-password"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowChangePassword(false)}>Cancel</Button>
+            <Button onClick={changePassword}>Change Password</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Appearance Dialog */}
+      <Dialog open={showAppearanceDialog} onOpenChange={setShowAppearanceDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Appearance</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="dark-mode">Dark Mode</Label>
+                <p className="text-sm text-muted-foreground">
+                  Switch between light and dark themes
+                </p>
+              </div>
+              <Switch
+                id="dark-mode"
+                checked={userPrefs.darkMode}
+                onCheckedChange={() => {
+                  const updatedPrefs = { ...userPrefs, darkMode: !userPrefs.darkMode };
+                  setUserPrefs(updatedPrefs);
+                }}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAppearanceDialog(false)}>Cancel</Button>
+            <Button onClick={saveAppearanceSettings}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Feedback Dialog */}
+      <Dialog open={showFeedbackDialog} onOpenChange={setShowFeedbackDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Send Feedback</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label htmlFor="rating-dialog" className="block mb-2">Rate your experience</Label>
+              <div className="flex space-x-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setRating(star)}
+                    className={`text-2xl ${rating >= star ? 'text-yellow-400' : 'text-gray-300'}`}
+                  >
+                    ★
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="feedback-dialog" className="block mb-2">Your feedback</Label>
+              <Textarea
+                id="feedback-dialog"
+                placeholder="Tell us what you like or what we could improve..."
+                value={feedback}
+                onChange={(e) => setFeedback(e.target.value)}
+                rows={5}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowFeedbackDialog(false)}>Cancel</Button>
+            <Button onClick={submitFeedback}>Submit Feedback</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Order Tracking Dialog */}
+      <Dialog open={showOrderTracking} onOpenChange={setShowOrderTracking}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Track Your Order</DialogTitle>
+          </DialogHeader>
+          {trackingOrder && (
+            <div className="py-4">
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <h3 className="font-medium">Order #{trackingOrder.id}</h3>
+                  <p className="text-sm text-gray-500">Placed on {trackingOrder.date}</p>
+                </div>
+                <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                  {trackingOrder.status.charAt(0).toUpperCase() + trackingOrder.status.slice(1)}
+                </span>
+              </div>
+              
+              <div className="relative">
+                <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-gray-200"></div>
+                <ul className="space-y-6 relative">
+                  <li className="flex gap-4">
+                    <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 z-10">
+                      <Check size={24} className="text-green-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-medium">Order Confirmed</h4>
+                      <p className="text-sm text-gray-500">Your order has been received and confirmed.</p>
+                      <p className="text-xs text-gray-400 mt-1">{trackingOrder.date}</p>
+                    </div>
+                  </li>
+                  <li className="flex gap-4">
+                    <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 z-10">
+                      <Check size={24} className="text-green-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-medium">Processing</h4>
+                      <p className="text-sm text-gray-500">Your order is being prepared for shipping.</p>
+                      <p className="text-xs text-gray-400 mt-1">{trackingOrder.date}</p>
+                    </div>
+                  </li>
+                  <li className="flex gap-4">
+                    <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 z-10">
+                      <Truck size={24} className="text-blue-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-medium">Shipped</h4>
+                      <p className="text-sm text-gray-500">Your order is on the way.</p>
+                      <p className="text-xs text-gray-400 mt-1">Expected delivery: In 2-3 days</p>
+                    </div>
+                  </li>
+                  <li className="flex gap-4">
+                    <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 z-10">
+                      <Package size={24} className="text-gray-400" />
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-400">Delivered</h4>
+                      <p className="text-sm text-gray-400">Your order will be delivered soon.</p>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+              
+              <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                <h4 className="font-medium mb-2">Shipping Information</h4>
+                <p className="text-sm">Shipping Partner: AyurExpress</p>
+                <p className="text-sm">Tracking Number: AE{Math.floor(Math.random() * 10000000)}</p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setShowOrderTracking(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Privacy Policy Dialog */}
+      <Dialog open={showPrivacyPolicy} onOpenChange={setShowPrivacyPolicy}>
+        <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Privacy Policy</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4 text-sm">
+            <h3 className="font-medium">Introduction</h3>
+            <p>
+              At AyurNest, we take your privacy seriously. This Privacy Policy outlines how we collect, use, and protect your personal information when you use our application.
+            </p>
+            
+            <h3 className="font-medium mt-4">Information We Collect</h3>
+            <p>
+              We collect information that you provide directly to us, such as when you create an account, complete your profile, place orders, or contact customer support. This may include your name, email address, phone number, delivery address, payment information, and your dosha profile.
+            </p>
+            
+            <h3 className="font-medium mt-4">How We Use Your Information</h3>
+            <p>
+              We use your information to provide, maintain, and improve our services, process transactions, send notifications, and communicate with you about products, services, and promotions.
+            </p>
+            
+            <h3 className="font-medium mt-4">Sharing Your Information</h3>
+            <p>
+              We do not sell your personal information to third parties. We may share your information with service providers who help us provide our services, such as payment processors and delivery partners.
+            </p>
+            
+            <h3 className="font-medium mt-4">Data Security</h3>
+            <p>
+              We implement appropriate security measures to protect your personal information from unauthorized access, alteration, disclosure, or destruction.
+            </p>
+            
+            <h3 className="font-medium mt-4">Your Rights</h3>
+            <p>
+              You have the right to access, correct, or delete your personal information at any time. You can do this by accessing your account settings or contacting us directly.
+            </p>
+            
+            <h3 className="font-medium mt-4">Changes to This Policy</h3>
+            <p>
+              We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new policy on our website or through the application.
+            </p>
+            
+            <h3 className="font-medium mt-4">Contact Us</h3>
+            <p>
+              If you have any questions about this Privacy Policy, please contact us at privacy@ayurnest.com.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowPrivacyPolicy(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Terms of Service Dialog */}
+      <Dialog open={showTermsOfService} onOpenChange={setShowTermsOfService}>
+        <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Terms of Service</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4 text-sm">
+            <h3 className="font-medium">Acceptance of Terms</h3>
+            <p>
+              By accessing or using AyurNest, you agree to be bound by these Terms of Service. If you do not agree to these terms, you may not use our services.
+            </p>
+            
+            <h3 className="font-medium mt-4">User Accounts</h3>
+            <p>
+              You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account. You must provide accurate and complete information when creating an account.
+            </p>
+            
+            <h3 className="font-medium mt-4">Use of Services</h3>
+            <p>
+              You agree to use our services only for lawful purposes and in accordance with these Terms. You agree not to use our services to transmit any malicious code, interfere with the operation of our services, or attempt to access areas of our systems that you are not authorized to access.
+            </p>
+            
+            <h3 className="font-medium mt-4">Intellectual Property</h3>
+            <p>
+              All content, features, and functionality of our application, including but not limited to text, graphics, logos, icons, and images, are owned by AyurNest and are protected by copyright, trademark, and other intellectual property laws.
+            </p>
+            
+            <h3 className="font-medium mt-4">Disclaimers</h3>
+            <p>
+              Our services are provided "as is" without any warranties, express or implied. We do not guarantee that our services will be error-free or uninterrupted, or that any defects will be corrected.
+            </p>
+            
+            <h3 className="font-medium mt-4">Health Information</h3>
+            <p>
+              The information provided by AyurNest is for informational purposes only and is not a substitute for professional medical advice, diagnosis, or treatment. Always seek the advice of a healthcare professional before making any changes to your health regimen.
+            </p>
+            
+            <h3 className="font-medium mt-4">Limitation of Liability</h3>
+            <p>
+              In no event shall AyurNest be liable for any indirect, incidental, special, consequential, or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses.
+            </p>
+            
+            <h3 className="font-medium mt-4">Changes to Terms</h3>
+            <p>
+              We reserve the right to modify these Terms at any time. We will notify you of any changes by posting the new Terms on our website or through the application.
+            </p>
+            
+            <h3 className="font-medium mt-4">Contact Us</h3>
+            <p>
+              If you have any questions about these Terms, please contact us at terms@ayurnest.com.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowTermsOfService(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
+
+// Make sure the Check icon is defined since it's used in the order tracking
+const Check: React.FC<{ size?: number; className?: string }> = ({ size = 24, className = "" }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+);
 
 interface ProfileMenuItemProps {
   icon: React.ElementType;
