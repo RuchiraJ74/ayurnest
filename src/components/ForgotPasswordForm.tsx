@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { ArrowLeft, Mail, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -12,7 +12,6 @@ const ForgotPasswordForm: React.FC = () => {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const { toast } = useToast();
   const { resetPassword } = useAuth();
   const navigate = useNavigate();
 
@@ -20,10 +19,8 @@ const ForgotPasswordForm: React.FC = () => {
     e.preventDefault();
     
     if (!email) {
-      toast({
-        title: "Email required",
-        description: "Please enter your email address.",
-        variant: "destructive"
+      toast("Email required", {
+        description: "Please enter your email address."
       });
       return;
     }
@@ -33,11 +30,10 @@ const ForgotPasswordForm: React.FC = () => {
     try {
       await resetPassword(email);
       setIsSubmitted(true);
+      toast.success("Reset link sent to your email");
     } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to send reset link",
-        variant: "destructive"
+      toast("Error", {
+        description: error instanceof Error ? error.message : "Failed to send reset link"
       });
     } finally {
       setIsLoading(false);

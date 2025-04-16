@@ -1,9 +1,8 @@
-
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { ArrowLeft, Leaf, User, Mail, Lock } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -164,7 +163,6 @@ export const LoginForm: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -172,10 +170,8 @@ export const LoginForm: React.FC = () => {
     e.preventDefault();
     
     if (!email || !password) {
-      toast({
-        title: "Missing information",
-        description: "Please enter both email and password.",
-        variant: "destructive"
+      toast("Missing information", {
+        description: "Please enter both email and password."
       });
       return;
     }
@@ -184,16 +180,10 @@ export const LoginForm: React.FC = () => {
     
     try {
       await login(email, password);
-      toast({
-        title: "Welcome back!",
-        description: "You've successfully logged in."
-      });
       navigate('/home');
     } catch (error) {
-      toast({
-        title: "Login failed",
-        description: error instanceof Error ? error.message : "Invalid credentials",
-        variant: "destructive"
+      toast("Login failed", {
+        description: error instanceof Error ? error.message : "Invalid credentials"
       });
     } finally {
       setIsLoading(false);
@@ -205,16 +195,13 @@ export const LoginForm: React.FC = () => {
     setIsLoading(true);
     try {
       await login('demo@example.com', 'password123');
-      toast({
-        title: "Demo account",
+      toast("Demo account", {
         description: "You've logged in with the demo account."
       });
       navigate('/home');
     } catch (error) {
-      toast({
-        title: "Demo login failed",
-        description: "Something went wrong with the demo login.",
-        variant: "destructive"
+      toast("Demo login failed", {
+        description: "Something went wrong with the demo login."
       });
     } finally {
       setIsLoading(false);
@@ -236,8 +223,8 @@ export const LoginForm: React.FC = () => {
         <div className="text-center mb-8">
           <div className="bg-white w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 shadow-md">
             <img
-              src="https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&q=80&w=400&h=400"
-              alt="Relaxing ayurvedic items"
+              src="https://cdn.vectorstock.com/i/1000v/73/05/ayurveda-logo-with-lotus-symbol-vector-19927305.jpg"
+              alt="Ayurveda Logo"
               className="w-full h-full object-cover rounded-full"
             />
           </div>

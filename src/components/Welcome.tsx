@@ -25,6 +25,13 @@ const Welcome: React.FC = () => {
         transition={{ duration: 0.6 }}
         className="text-center mb-8"
       >
+        <div className="w-32 h-32 mx-auto mb-6 rounded-full overflow-hidden shadow-lg">
+          <img 
+            src="https://t4.ftcdn.net/jpg/03/11/53/77/360_F_311537787_V5pD8sE52ZSTb5Kj3BOKevntFUaZv4AG.jpg" 
+            alt="Ayurveda Wellness" 
+            className="w-full h-full object-cover"
+          />
+        </div>
         <h1 className={`${isMobile ? 'text-3xl' : 'text-4xl md:text-5xl'} font-playfair font-bold text-ayur-secondary mb-4`}>
           Welcome to AyurNest
         </h1>

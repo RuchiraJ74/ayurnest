@@ -2,14 +2,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { products, categories, getProductsByCategory } from '@/data/productData';
-import { Search, ShoppingBag, Filter, X } from 'lucide-react';
+import { Search, ShoppingBag, Filter, X, Heart } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/CartContext';
+import { useAuth } from '@/context/AuthContext';
 import { motion } from 'framer-motion';
+import { toast } from 'sonner';
 
 const ShopPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState('All Products');
@@ -17,6 +19,7 @@ const ShopPage: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 50]);
   const { totalItems } = useCart();
+  const { user, addToFavorites, removeFromFavorites, isFavorite } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -38,6 +41,31 @@ const ShopPage: React.FC = () => {
   
   const handlePriceRangeChange = (min: number, max: number) => {
     setPriceRange([min, max]);
+  };
+
+  const handleFavoriteToggle = (e: React.MouseEvent, productId: string) => {
+    e.stopPropagation(); // Prevent navigating to product detail
+    
+    if (!user) {
+      toast("Please log in", { 
+        description: "You need to log in to add products to favorites"
+      });
+      return;
+    }
+    
+    if (isFavorite(productId)) {
+      removeFromFavorites(productId);
+    } else {
+      addToFavorites(productId);
+    }
+  };
+  
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Could add additional search functionality here
+    toast("Search results", {
+      description: `Showing results for "${searchTerm}"`
+    });
   };
   
   return (
@@ -76,7 +104,7 @@ const ShopPage: React.FC = () => {
         transition={{ delay: 0.1 }}
         className="flex gap-3 mb-6"
       >
-        <div className="relative flex-1">
+        <form className="relative flex-1" onSubmit={handleSearch}>
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
           <Input
             type="text"
@@ -85,7 +113,8 @@ const ShopPage: React.FC = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10 bg-white rounded-full border-gray-200"
           />
-        </div>
+          <button type="submit" className="hidden">Search</button>
+        </form>
         <button 
           className={`p-2 rounded-full shadow-sm ${showFilters ? 'bg-ayur-primary text-white' : 'bg-white'}`}
           onClick={() => setShowFilters(!showFilters)}
@@ -183,22 +212,28 @@ const ShopPage: React.FC = () => {
               transition={{ delay: index * 0.05 }}
             >
               <Card 
-                className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => navigate(`/shop/${product.id}`)}
+                className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow relative"
               >
                 <div className="relative aspect-square bg-gray-100">
                   <img 
                     src={product.image} 
                     alt={product.name} 
                     className="absolute inset-0 w-full h-full object-cover"
+                    onClick={() => navigate(`/shop/${product.id}`)}
                     onError={(e) => {
                       (e.target as HTMLImageElement).onerror = null;
                       (e.target as HTMLImageElement).src = "https://via.placeholder.com/400?text=AyurNest";
                     }}
                   />
                   <Badge className="absolute top-2 right-2 bg-ayur-primary">${product.price.toFixed(2)}</Badge>
+                  <button 
+                    className={`absolute top-2 left-2 p-1.5 rounded-full ${isFavorite(product.id) ? 'bg-red-500 text-white' : 'bg-white/80 text-gray-500'}`}
+                    onClick={(e) => handleFavoriteToggle(e, product.id)}
+                  >
+                    <Heart size={16} fill={isFavorite(product.id) ? "white" : "none"} />
+                  </button>
                 </div>
-                <div className="p-3">
+                <div className="p-3" onClick={() => navigate(`/shop/${product.id}`)}>
                   <h3 className="font-medium text-sm line-clamp-1">{product.name}</h3>
                   <p className="text-xs text-gray-500 mt-1 line-clamp-2">{product.description}</p>
                 </div>

@@ -9,6 +9,44 @@ type User = {
   email: string;
   dosha?: 'vata' | 'pitta' | 'kapha' | 'vata-pitta' | 'pitta-kapha' | 'vata-kapha' | 'tridosha' | undefined;
   joinDate?: string;
+  favorites?: string[];
+  orderHistory?: Order[];
+  preferences?: {
+    darkMode: boolean;
+    notifications: boolean;
+    emailUpdates: boolean;
+  };
+};
+
+type Order = {
+  id: string;
+  date: string;
+  products: {
+    id: string;
+    name: string;
+    quantity: number;
+    price: number;
+  }[];
+  totalAmount: number;
+  status: 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  paymentMethod: string;
+  deliveryAddress: string;
+  phoneNumber: string;
+  trackingDetails?: {
+    currentStatus: string;
+    estimatedDelivery?: string;
+    lastUpdated: string;
+    location?: string;
+  };
+};
+
+type Feedback = {
+  id: string;
+  userId: string;
+  username: string;
+  rating: number;
+  message: string;
+  date: string;
 };
 
 // Define context type
@@ -22,10 +60,16 @@ type AuthContextType = {
   resetPassword: (email: string) => Promise<void>;
   updateUserProfile: (username?: string, email?: string) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  toggleDarkMode: () => void;
+  addToFavorites: (productId: string) => void;
+  removeFromFavorites: (productId: string) => void;
+  isFavorite: (productId: string) => boolean;
+  addOrder: (order: Omit<Order, 'id' | 'date'>) => void;
+  addFeedback: (feedback: Omit<Feedback, 'id' | 'userId' | 'username' | 'date'>) => Feedback | undefined;
+  getFeedback: () => Feedback[];
+  submitSupportMessage: (message: string) => Promise<void>;
+  getDarkMode: () => boolean;
 };
-
-// Create context
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Mock user type
 type MockUser = {
@@ -35,7 +79,17 @@ type MockUser = {
   password: string;
   dosha?: 'vata' | 'pitta' | 'kapha' | 'vata-pitta' | 'pitta-kapha' | 'vata-kapha' | 'tridosha';
   joinDate?: string;
+  favorites?: string[];
+  orderHistory?: Order[];
+  preferences?: {
+    darkMode: boolean;
+    notifications: boolean;
+    emailUpdates: boolean;
+  };
 };
+
+// Storage for feedback
+let GLOBAL_FEEDBACK: Feedback[] = [];
 
 // Mock users data (simulating backend)
 const MOCK_USERS: MockUser[] = [
@@ -46,6 +100,13 @@ const MOCK_USERS: MockUser[] = [
     password: 'password123',
     dosha: 'vata-pitta',
     joinDate: '2023-04-15',
+    favorites: ['1', '5', '7'],
+    orderHistory: [],
+    preferences: {
+      darkMode: false,
+      notifications: true,
+      emailUpdates: false,
+    },
   },
 ];
 
@@ -78,10 +139,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: foundUser.email,
         dosha: foundUser.dosha,
         joinDate: foundUser.joinDate,
+        favorites: foundUser.favorites || [],
+        orderHistory: foundUser.orderHistory || [],
+        preferences: foundUser.preferences || {
+          darkMode: false,
+          notifications: true,
+          emailUpdates: false,
+        },
       };
       setUser(userData);
       localStorage.setItem('ayurnest_user', JSON.stringify(userData));
-      toast.success("Successfully logged in!");
+      toast("Logged in successfully!");
     } else {
       toast.error("Invalid credentials");
       throw new Error('Invalid credentials');
@@ -111,6 +179,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       email,
       password,
       joinDate: currentDate,
+      favorites: [],
+      orderHistory: [],
+      preferences: {
+        darkMode: false,
+        notifications: true,
+        emailUpdates: false,
+      },
     };
     
     // In a real app, this would be a server-side operation
@@ -121,6 +196,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       username: newUser.username,
       email: newUser.email,
       joinDate: newUser.joinDate,
+      favorites: [],
+      orderHistory: [],
+      preferences: {
+        darkMode: false,
+        notifications: true,
+        emailUpdates: false,
+      },
     };
     
     setUser(userData);
@@ -206,7 +288,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     setUser(updatedUser);
     localStorage.setItem('ayurnest_user', JSON.stringify(updatedUser));
-    toast.success("Profile updated successfully");
+    toast.success("Changes saved!");
     setLoading(false);
   };
   
@@ -237,6 +319,154 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(false);
   };
 
+  // Toggle dark mode
+  const toggleDarkMode = () => {
+    if (user && user.preferences) {
+      const updatedUser = {
+        ...user,
+        preferences: {
+          ...user.preferences,
+          darkMode: !user.preferences.darkMode,
+        }
+      };
+      setUser(updatedUser);
+      localStorage.setItem('ayurnest_user', JSON.stringify(updatedUser));
+      toast.success("Appearance settings updated!");
+      
+      // Update the document with the appropriate class for dark mode
+      if (updatedUser.preferences.darkMode) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+  };
+
+  // Get dark mode status
+  const getDarkMode = (): boolean => {
+    return user?.preferences?.darkMode || false;
+  };
+
+  // Favorites handling
+  const addToFavorites = (productId: string) => {
+    if (!user) {
+      toast.error("You must be logged in to add favorites");
+      return;
+    }
+
+    const favorites = user.favorites || [];
+    if (!favorites.includes(productId)) {
+      const updatedFavorites = [...favorites, productId];
+      const updatedUser = { ...user, favorites: updatedFavorites };
+      
+      // Update mock user
+      const mockUserIndex = MOCK_USERS.findIndex(u => u.id === user.id);
+      if (mockUserIndex !== -1) {
+        MOCK_USERS[mockUserIndex].favorites = updatedFavorites;
+      }
+      
+      setUser(updatedUser);
+      localStorage.setItem('ayurnest_user', JSON.stringify(updatedUser));
+      toast.success("Added to favorites!");
+    }
+  };
+
+  const removeFromFavorites = (productId: string) => {
+    if (!user || !user.favorites) return;
+    
+    const updatedFavorites = user.favorites.filter(id => id !== productId);
+    const updatedUser = { ...user, favorites: updatedFavorites };
+    
+    // Update mock user
+    const mockUserIndex = MOCK_USERS.findIndex(u => u.id === user.id);
+    if (mockUserIndex !== -1) {
+      MOCK_USERS[mockUserIndex].favorites = updatedFavorites;
+    }
+    
+    setUser(updatedUser);
+    localStorage.setItem('ayurnest_user', JSON.stringify(updatedUser));
+    toast.success("Removed from favorites!");
+  };
+
+  const isFavorite = (productId: string): boolean => {
+    return user?.favorites?.includes(productId) || false;
+  };
+
+  // Add an order to user history
+  const addOrder = (orderData: Omit<Order, 'id' | 'date'>) => {
+    if (!user) {
+      toast.error("You must be logged in to place an order");
+      return;
+    }
+
+    const newOrder: Order = {
+      id: Math.random().toString(36).substring(2, 11),
+      date: new Date().toISOString(),
+      ...orderData
+    };
+
+    const updatedOrderHistory = [...(user.orderHistory || []), newOrder];
+    const updatedUser = { ...user, orderHistory: updatedOrderHistory };
+
+    // Update mock user
+    const mockUserIndex = MOCK_USERS.findIndex(u => u.id === user.id);
+    if (mockUserIndex !== -1) {
+      MOCK_USERS[mockUserIndex].orderHistory = updatedOrderHistory;
+    }
+
+    setUser(updatedUser);
+    localStorage.setItem('ayurnest_user', JSON.stringify(updatedUser));
+    toast.success("Order placed successfully!");
+  };
+
+  // Add feedback
+  const addFeedback = (feedbackData: Omit<Feedback, 'id' | 'userId' | 'username' | 'date'>): Feedback | undefined => {
+    if (!user) {
+      toast.error("You must be logged in to submit feedback");
+      return undefined;
+    }
+
+    const newFeedback: Feedback = {
+      id: Math.random().toString(36).substring(2, 11),
+      userId: user.id,
+      username: user.username,
+      date: new Date().toISOString(),
+      ...feedbackData
+    };
+
+    GLOBAL_FEEDBACK.push(newFeedback);
+    toast.success("Feedback submitted!");
+    return newFeedback;
+  };
+
+  // Get all feedback
+  const getFeedback = (): Feedback[] => {
+    return GLOBAL_FEEDBACK;
+  };
+
+  // Submit support message
+  const submitSupportMessage = async (message: string): Promise<void> => {
+    if (!user) {
+      toast.error("You must be logged in to contact support");
+      throw new Error('You must be logged in to contact support');
+    }
+    
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // In a real app, this would send the message to a support system
+    toast.success("Support message sent!");
+  };
+
+  // Check if dark mode should be enabled on initial load
+  useEffect(() => {
+    if (user?.preferences?.darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [user]);
+
   return (
     <AuthContext.Provider 
       value={{ 
@@ -248,7 +478,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateUserDosha, 
         resetPassword,
         updateUserProfile,
-        changePassword
+        changePassword,
+        toggleDarkMode,
+        addToFavorites,
+        removeFromFavorites,
+        isFavorite,
+        addOrder,
+        addFeedback,
+        getFeedback,
+        submitSupportMessage,
+        getDarkMode
       }}
     >
       {children}

@@ -80,7 +80,7 @@ export const products: Product[] = [
     description: "Traditional copper vessel for storing water with health benefits.",
     price: 29.99,
     category: "Wellness Kits",
-    image: "https://images.unsplash.com/photo-1587582616563-d49a76c591c0?auto=format&fit=crop&q=80&w=400&h=400"
+    image: "https://ptal.in/cdn/shop/files/DSCF0183.jpg?v=1743599168&width=1080"
   },
   {
     id: "11",
