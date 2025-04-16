@@ -88,6 +88,28 @@ type MockUser = {
   };
 };
 
+// Create the context with default values
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  loading: false,
+  login: async () => {},
+  signup: async () => {},
+  logout: () => {},
+  updateUserDosha: () => {},
+  resetPassword: async () => {},
+  updateUserProfile: async () => {},
+  changePassword: async () => {},
+  toggleDarkMode: () => {},
+  addToFavorites: () => {},
+  removeFromFavorites: () => {},
+  isFavorite: () => false,
+  addOrder: () => {},
+  addFeedback: () => undefined,
+  getFeedback: () => [],
+  submitSupportMessage: async () => {},
+  getDarkMode: () => false
+});
+
 // Storage for feedback
 let GLOBAL_FEEDBACK: Feedback[] = [];
 
@@ -502,3 +524,4 @@ export const useAuth = () => {
   }
   return context;
 };
+

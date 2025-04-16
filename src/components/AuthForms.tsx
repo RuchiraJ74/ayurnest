@@ -13,7 +13,6 @@ export const SignupForm: React.FC = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
   const { signup } = useAuth();
   const navigate = useNavigate();
 
@@ -21,19 +20,15 @@ export const SignupForm: React.FC = () => {
     e.preventDefault();
     
     if (!username || !email || !password || !confirmPassword) {
-      toast({
-        title: "Missing information",
-        description: "Please fill in all fields.",
-        variant: "destructive"
+      toast("Missing information", {
+        description: "Please fill in all fields."
       });
       return;
     }
     
     if (password !== confirmPassword) {
-      toast({
-        title: "Passwords don't match",
-        description: "Please make sure your passwords match.",
-        variant: "destructive"
+      toast("Passwords don't match", {
+        description: "Please make sure your passwords match."
       });
       return;
     }
@@ -42,16 +37,13 @@ export const SignupForm: React.FC = () => {
     
     try {
       await signup(username, email, password);
-      toast({
-        title: "Account created!",
+      toast("Account created!", {
         description: "Welcome to AyurNest."
       });
       navigate('/dosha-test');
     } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create account",
-        variant: "destructive"
+      toast("Error", {
+        description: error instanceof Error ? error.message : "Failed to create account"
       });
     } finally {
       setIsLoading(false);
@@ -190,7 +182,6 @@ export const LoginForm: React.FC = () => {
     }
   };
 
-  // Demo login helper
   const handleDemoLogin = async () => {
     setIsLoading(true);
     try {
