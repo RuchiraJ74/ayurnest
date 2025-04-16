@@ -1,9 +1,12 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import { User, Session } from '@supabase/supabase-js';
+import { supabase } from "@/integrations/supabase/client";
+import { Database } from "@/integrations/supabase/types";
 
 // Define user type
-type User = {
+type UserProfile = {
   id: string;
   username: string;
   email: string;
@@ -16,6 +19,9 @@ type User = {
     notifications: boolean;
     emailUpdates: boolean;
   };
+  fullName?: string;
+  phoneNumber?: string;
+  deliveryAddress?: string;
 };
 
 type Order = {
@@ -51,209 +57,329 @@ type Feedback = {
 
 // Define context type
 type AuthContextType = {
-  user: User | null;
+  user: UserProfile | null;
+  authUser: User | null;
+  session: Session | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (username: string, email: string, password: string) => Promise<void>;
   logout: () => void;
-  updateUserDosha: (dosha: string) => void;
+  updateUserDosha: (dosha: string) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
-  updateUserProfile: (username?: string, email?: string) => Promise<void>;
+  updateUserProfile: (userData: Partial<UserProfile>) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
-  toggleDarkMode: () => void;
-  addToFavorites: (productId: string) => void;
-  removeFromFavorites: (productId: string) => void;
-  isFavorite: (productId: string) => boolean;
-  addOrder: (order: Omit<Order, 'id' | 'date'>) => void;
-  addFeedback: (feedback: Omit<Feedback, 'id' | 'userId' | 'username' | 'date'>) => Feedback | undefined;
-  getFeedback: () => Feedback[];
-  submitSupportMessage: (message: string) => Promise<void>;
+  toggleDarkMode: () => Promise<void>;
+  addToFavorites: (productId: string) => Promise<void>;
+  removeFromFavorites: (productId: string) => Promise<void>;
+  isFavorite: (productId: string) => Promise<boolean>;
+  addOrder: (order: Omit<Order, 'id' | 'date'>) => Promise<void>;
+  addFeedback: (feedback: Omit<Feedback, 'id' | 'userId' | 'username' | 'date'>) => Promise<Feedback | undefined>;
+  getFeedback: () => Promise<Feedback[]>;
+  submitSupportMessage: (issueType: string, message: string) => Promise<void>;
   getDarkMode: () => boolean;
-};
-
-// Mock user type
-type MockUser = {
-  id: string;
-  username: string;
-  email: string;
-  password: string;
-  dosha?: 'vata' | 'pitta' | 'kapha' | 'vata-pitta' | 'pitta-kapha' | 'vata-kapha' | 'tridosha';
-  joinDate?: string;
-  favorites?: string[];
-  orderHistory?: Order[];
-  preferences?: {
-    darkMode: boolean;
-    notifications: boolean;
-    emailUpdates: boolean;
-  };
+  getFavorites: () => Promise<string[]>;
+  refreshUserProfile: () => Promise<void>;
 };
 
 // Create the context with default values
 const AuthContext = createContext<AuthContextType>({
   user: null,
+  authUser: null,
+  session: null,
   loading: false,
   login: async () => {},
   signup: async () => {},
   logout: () => {},
-  updateUserDosha: () => {},
+  updateUserDosha: async () => {},
   resetPassword: async () => {},
   updateUserProfile: async () => {},
   changePassword: async () => {},
-  toggleDarkMode: () => {},
-  addToFavorites: () => {},
-  removeFromFavorites: () => {},
-  isFavorite: () => false,
-  addOrder: () => {},
-  addFeedback: () => undefined,
-  getFeedback: () => [],
+  toggleDarkMode: async () => {},
+  addToFavorites: async () => {},
+  removeFromFavorites: async () => {},
+  isFavorite: async () => false,
+  addOrder: async () => {},
+  addFeedback: async () => undefined,
+  getFeedback: async () => [],
   submitSupportMessage: async () => {},
-  getDarkMode: () => false
+  getDarkMode: () => false,
+  getFavorites: async () => [],
+  refreshUserProfile: async () => {},
 });
 
-// Storage for feedback
-let GLOBAL_FEEDBACK: Feedback[] = [];
-
-// Mock users data (simulating backend)
-const MOCK_USERS: MockUser[] = [
-  {
-    id: '1',
-    username: 'demo',
-    email: 'demo@example.com',
-    password: 'password123',
-    dosha: 'vata-pitta',
-    joinDate: '2023-04-15',
-    favorites: ['1', '5', '7'],
-    orderHistory: [],
-    preferences: {
-      darkMode: false,
-      notifications: true,
-      emailUpdates: false,
-    },
-  },
-];
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [authUser, setAuthUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [favorites, setFavorites] = useState<string[]>([]);
 
-  useEffect(() => {
-    // Check if user is stored in localStorage
-    const storedUser = localStorage.getItem('ayurnest_user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+  // Get user profile from Supabase
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      // Get profile data
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+        return;
+      }
+
+      // Get user data from auth
+      const { data: userData } = await supabase.auth.getUser();
+
+      // Get favorites
+      const { data: favoritesData, error: favoritesError } = await supabase
+        .from('favorites')
+        .select('product_id')
+        .eq('user_id', userId);
+
+      if (favoritesError) {
+        console.error('Error fetching favorites:', favoritesError);
+      }
+
+      const favoriteIds = favoritesData?.map(item => item.product_id) || [];
+      setFavorites(favoriteIds);
+
+      // Get orders
+      const { data: ordersData, error: ordersError } = await supabase
+        .from('orders')
+        .select(`
+          id, 
+          order_date, 
+          status, 
+          payment_method, 
+          delivery_address, 
+          total_amount,
+          tracking_info,
+          order_items(
+            id, 
+            product_id, 
+            product_name, 
+            quantity, 
+            price
+          )
+        `)
+        .eq('user_id', userId)
+        .order('order_date', { ascending: false });
+
+      if (ordersError) {
+        console.error('Error fetching orders:', ordersError);
+      }
+
+      // Transform orders data
+      const orderHistory = ordersData?.map(order => ({
+        id: order.id,
+        date: order.order_date,
+        products: order.order_items.map((item: any) => ({
+          id: item.product_id,
+          name: item.product_name,
+          quantity: item.quantity,
+          price: item.price,
+        })),
+        totalAmount: order.total_amount,
+        status: order.status as 'processing' | 'shipped' | 'delivered' | 'cancelled',
+        paymentMethod: order.payment_method,
+        deliveryAddress: order.delivery_address,
+        phoneNumber: profileData?.phone_number || '',
+        trackingDetails: order.tracking_info ? {
+          currentStatus: order.tracking_info.currentStatus,
+          estimatedDelivery: order.tracking_info.estimatedDelivery,
+          lastUpdated: order.tracking_info.lastUpdated,
+          location: order.tracking_info.location,
+        } : undefined,
+      })) || [];
+
+      // Parse preferences
+      const preferences = profileData?.preferences || { darkMode: false, notifications: true, emailUpdates: false };
+
+      // Create user object
+      const userProfile: UserProfile = {
+        id: userId,
+        username: userData.user?.user_metadata?.full_name || profileData?.full_name || 'User',
+        email: userData.user?.email || '',
+        dosha: userData.user?.user_metadata?.dosha,
+        joinDate: profileData?.signup_date,
+        favorites: favoriteIds,
+        orderHistory,
+        preferences: {
+          darkMode: preferences.darkMode || false,
+          notifications: preferences.notifications || true,
+          emailUpdates: preferences.emailUpdates || false,
+        },
+        fullName: profileData?.full_name,
+        phoneNumber: profileData?.phone_number,
+        deliveryAddress: profileData?.delivery_address,
+      };
+
+      setUser(userProfile);
+
+      // Apply dark mode if enabled
+      if (userProfile.preferences?.darkMode) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+
+    } catch (error) {
+      console.error('Error in fetchUserProfile:', error);
     }
-    setLoading(false);
+  };
+
+  // Initialize auth state
+  useEffect(() => {
+    // First set up the auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, newSession) => {
+        console.log('Auth state changed:', event);
+        setSession(newSession);
+        setAuthUser(newSession?.user || null);
+        
+        if (newSession?.user) {
+          setTimeout(() => {
+            fetchUserProfile(newSession.user.id);
+          }, 0);
+        } else {
+          setUser(null);
+        }
+      }
+    );
+
+    // Then check the current session
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      setSession(currentSession);
+      setAuthUser(currentSession?.user || null);
+      
+      if (currentSession?.user) {
+        fetchUserProfile(currentSession.user.id);
+      }
+      setLoading(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
-  // Mock login functionality
+  const refreshUserProfile = async () => {
+    if (authUser) {
+      await fetchUserProfile(authUser.id);
+    }
+  };
+
+  // Login functionality
   const login = async (email: string, password: string) => {
     setLoading(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const foundUser = MOCK_USERS.find(u => u.email === email && u.password === password);
-    
-    if (foundUser) {
-      const userData: User = {
-        id: foundUser.id,
-        username: foundUser.username,
-        email: foundUser.email,
-        dosha: foundUser.dosha,
-        joinDate: foundUser.joinDate,
-        favorites: foundUser.favorites || [],
-        orderHistory: foundUser.orderHistory || [],
-        preferences: foundUser.preferences || {
-          darkMode: false,
-          notifications: true,
-          emailUpdates: false,
-        },
-      };
-      setUser(userData);
-      localStorage.setItem('ayurnest_user', JSON.stringify(userData));
-      toast("Logged in successfully!");
-    } else {
-      toast("Invalid credentials", {
-        description: "Please check your email and password",
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
-      throw new Error('Invalid credentials');
+      
+      if (error) {
+        toast.error("Login failed", {
+          description: error.message,
+        });
+        throw error;
+      }
+      
+      toast.success("Logged in successfully!");
+    } catch (error: any) {
+      console.error('Login error:', error);
+      throw error;
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
-  // Mock signup functionality
+  // Signup functionality
   const signup = async (username: string, email: string, password: string) => {
     setLoading(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Check if email already exists
-    if (MOCK_USERS.some(u => u.email === email)) {
-      toast("Email already in use", {
-        description: "Please use a different email address",
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: username,
+          },
+        },
       });
-      throw new Error('Email already in use');
+      
+      if (error) {
+        toast.error("Sign up failed", {
+          description: error.message,
+        });
+        throw error;
+      }
+      
+      // The profile is created via the database trigger
+      toast.success("Account created successfully!");
+    } catch (error: any) {
+      console.error('Signup error:', error);
+      throw error;
+    } finally {
+      setLoading(false);
     }
-    
-    const currentDate = new Date().toISOString().split('T')[0];
-    
-    const newUser: MockUser = {
-      id: Math.random().toString(36).substr(2, 9),
-      username,
-      email,
-      password,
-      joinDate: currentDate,
-      favorites: [],
-      orderHistory: [],
-      preferences: {
-        darkMode: false,
-        notifications: true,
-        emailUpdates: false,
-      },
-    };
-    
-    // In a real app, this would be a server-side operation
-    MOCK_USERS.push(newUser);
-    
-    const userData: User = {
-      id: newUser.id,
-      username: newUser.username,
-      email: newUser.email,
-      joinDate: newUser.joinDate,
-      favorites: [],
-      orderHistory: [],
-      preferences: {
-        darkMode: false,
-        notifications: true,
-        emailUpdates: false,
-      },
-    };
-    
-    setUser(userData);
-    localStorage.setItem('ayurnest_user', JSON.stringify(userData));
-    toast("Account created successfully!");
-    setLoading(false);
   };
 
   // Logout functionality
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('ayurnest_user');
-    toast("Logged out successfully");
+  const logout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        toast.error("Logout failed", {
+          description: error.message,
+        });
+        return;
+      }
+      
+      toast.success("Logged out successfully");
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   // Update user's dosha
-  const updateUserDosha = (dosha: string) => {
-    if (user) {
-      const updatedUser: User = { 
-        ...user, 
-        dosha: dosha as 'vata' | 'pitta' | 'kapha' | 'vata-pitta' | 'pitta-kapha' | 'vata-kapha' | 'tridosha' 
-      };
-      setUser(updatedUser);
-      localStorage.setItem('ayurnest_user', JSON.stringify(updatedUser));
-      toast("Dosha updated successfully");
+  const updateUserDosha = async (dosha: string) => {
+    if (!authUser) {
+      toast.error("Not logged in", {
+        description: "You must be logged in to update your dosha",
+      });
+      return;
+    }
+    
+    try {
+      // Update user metadata
+      const { data, error } = await supabase.auth.updateUser({
+        data: { dosha },
+      });
+      
+      if (error) {
+        toast.error("Failed to update dosha", {
+          description: error.message,
+        });
+        return;
+      }
+      
+      // Update local user state
+      if (user) {
+        setUser({
+          ...user,
+          dosha: dosha as 'vata' | 'pitta' | 'kapha' | 'vata-pitta' | 'pitta-kapha' | 'vata-kapha' | 'tridosha',
+        });
+      }
+      
+      toast.success("Dosha updated successfully");
+    } catch (error) {
+      console.error('Update dosha error:', error);
     }
   };
   
@@ -261,29 +387,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const resetPassword = async (email: string) => {
     setLoading(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const userExists = MOCK_USERS.some(u => u.email === email);
-    
-    if (!userExists) {
-      toast("No account found", {
-        description: "No account found with this email",
+    try {
+      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
       });
-      throw new Error('No account found with this email');
+      
+      if (error) {
+        toast.error("Password reset failed", {
+          description: error.message,
+        });
+        throw error;
+      }
+      
+      toast.success("Password reset link sent", {
+        description: "Check your email for the reset link",
+      });
+    } catch (error: any) {
+      console.error('Reset password error:', error);
+      throw error;
+    } finally {
+      setLoading(false);
     }
-    
-    // In a real app, this would send a password reset email
-    toast("Password reset link sent", {
-      description: "Check your email for the reset link",
-    });
-    setLoading(false);
   };
   
   // Update user profile
-  const updateUserProfile = async (username?: string, email?: string) => {
-    if (!user) {
-      toast("Not logged in", {
+  const updateUserProfile = async (userData: Partial<UserProfile>) => {
+    if (!authUser || !user) {
+      toast.error("Not logged in", {
         description: "You must be logged in to update your profile",
       });
       throw new Error('You must be logged in to update your profile');
@@ -291,47 +421,88 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     setLoading(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // In a real app, this would validate and update the user profile in the database
-    const updatedUser = { ...user };
-    
-    if (username) {
-      updatedUser.username = username;
-    }
-    
-    if (email) {
-      // Check if email is already in use by another user
-      if (email !== user.email && MOCK_USERS.some(u => u.email === email)) {
-        setLoading(false);
-        toast("Email already in use", {
-          description: "This email is already registered to another account",
-        });
-        throw new Error('Email is already in use');
+    try {
+      // Update profile data in Supabase
+      const profileData: any = {};
+      
+      if (userData.fullName) {
+        profileData.full_name = userData.fullName;
       }
-      updatedUser.email = email;
+      
+      if (userData.phoneNumber) {
+        profileData.phone_number = userData.phoneNumber;
+      }
+      
+      if (userData.deliveryAddress) {
+        profileData.delivery_address = userData.deliveryAddress;
+      }
+      
+      if (userData.preferences) {
+        profileData.preferences = {
+          ...(user.preferences || {}),
+          ...userData.preferences,
+        };
+      }
+      
+      if (Object.keys(profileData).length > 0) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update(profileData)
+          .eq('id', authUser.id);
+        
+        if (profileError) {
+          toast.error("Profile update failed", {
+            description: profileError.message,
+          });
+          throw profileError;
+        }
+      }
+      
+      // Update email or user metadata if needed
+      if (userData.email || userData.username) {
+        const userUpdateData: any = {
+          data: {},
+        };
+        
+        if (userData.email) {
+          userUpdateData.email = userData.email;
+        }
+        
+        if (userData.username) {
+          userUpdateData.data.full_name = userData.username;
+        }
+        
+        const { error: userError } = await supabase.auth.updateUser(userUpdateData);
+        
+        if (userError) {
+          toast.error("User update failed", {
+            description: userError.message,
+          });
+          throw userError;
+        }
+      }
+      
+      // Update local user state
+      setUser({
+        ...user,
+        ...userData,
+      });
+      
+      toast.success("Profile updated", {
+        description: "Your profile has been updated successfully",
+      });
+    } catch (error: any) {
+      console.error('Update profile error:', error);
+      throw error;
+    } finally {
+      setLoading(false);
     }
-    
-    // Update mock user data
-    const mockUserIndex = MOCK_USERS.findIndex(u => u.id === user.id);
-    if (mockUserIndex !== -1) {
-      if (username) MOCK_USERS[mockUserIndex].username = username;
-      if (email) MOCK_USERS[mockUserIndex].email = email;
-    }
-    
-    setUser(updatedUser);
-    localStorage.setItem('ayurnest_user', JSON.stringify(updatedUser));
-    toast("Profile updated", {
-      description: "Your profile has been updated successfully",
-    });
-    setLoading(false);
   };
   
   // Change password
   const changePassword = async (currentPassword: string, newPassword: string) => {
-    if (!user) {
-      toast("Not logged in", {
+    if (!authUser) {
+      toast.error("Not logged in", {
         description: "You must be logged in to change your password",
       });
       throw new Error('You must be logged in to change your password');
@@ -339,49 +510,92 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     setLoading(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Find the user in mock data and verify current password
-    const mockUserIndex = MOCK_USERS.findIndex(u => u.id === user.id);
-    if (mockUserIndex === -1 || MOCK_USERS[mockUserIndex].password !== currentPassword) {
-      setLoading(false);
-      toast("Incorrect password", {
-        description: "Your current password is incorrect",
+    try {
+      // First sign in with the current password to verify it
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: authUser.email || '',
+        password: currentPassword,
       });
-      throw new Error('Current password is incorrect');
+      
+      if (signInError) {
+        toast.error("Current password is incorrect", {
+          description: signInError.message,
+        });
+        throw signInError;
+      }
+      
+      // Then update the password
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+      
+      if (updateError) {
+        toast.error("Password change failed", {
+          description: updateError.message,
+        });
+        throw updateError;
+      }
+      
+      toast.success("Password changed", {
+        description: "Your password has been changed successfully",
+      });
+    } catch (error: any) {
+      console.error('Change password error:', error);
+      throw error;
+    } finally {
+      setLoading(false);
     }
-    
-    // Update the password in mock data
-    MOCK_USERS[mockUserIndex].password = newPassword;
-    
-    toast("Password changed", {
-      description: "Your password has been changed successfully",
-    });
-    setLoading(false);
   };
 
   // Toggle dark mode
-  const toggleDarkMode = () => {
-    if (user && user.preferences) {
-      const updatedUser = {
+  const toggleDarkMode = async () => {
+    if (!authUser || !user || !user.preferences) {
+      toast.error("Not logged in", {
+        description: "You must be logged in to change appearance settings",
+      });
+      return;
+    }
+    
+    const newDarkMode = !user.preferences.darkMode;
+    
+    try {
+      // Update preferences in profile
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          preferences: {
+            ...user.preferences,
+            darkMode: newDarkMode,
+          },
+        })
+        .eq('id', authUser.id);
+      
+      if (error) {
+        toast.error("Failed to update appearance settings", {
+          description: error.message,
+        });
+        return;
+      }
+      
+      // Update local state
+      setUser({
         ...user,
         preferences: {
           ...user.preferences,
-          darkMode: !user.preferences.darkMode,
-        }
-      };
-      setUser(updatedUser);
-      localStorage.setItem('ayurnest_user', JSON.stringify(updatedUser));
+          darkMode: newDarkMode,
+        },
+      });
       
-      // Update the document with the appropriate class for dark mode
-      if (updatedUser.preferences.darkMode) {
+      // Update the document class
+      if (newDarkMode) {
         document.documentElement.classList.add('dark');
-        toast("Dark mode enabled");
+        toast.success("Dark mode enabled");
       } else {
         document.documentElement.classList.remove('dark');
-        toast("Light mode enabled");
+        toast.success("Light mode enabled");
       }
+    } catch (error) {
+      console.error('Toggle dark mode error:', error);
     }
   };
 
@@ -390,140 +604,348 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return user?.preferences?.darkMode || false;
   };
 
+  // Fetch favorites
+  const getFavorites = async (): Promise<string[]> => {
+    if (!authUser) {
+      return [];
+    }
+    
+    try {
+      const { data, error } = await supabase
+        .from('favorites')
+        .select('product_id')
+        .eq('user_id', authUser.id);
+      
+      if (error) {
+        console.error('Error fetching favorites:', error);
+        return [];
+      }
+      
+      const favoriteIds = data.map(item => item.product_id);
+      setFavorites(favoriteIds);
+      return favoriteIds;
+    } catch (error) {
+      console.error('Get favorites error:', error);
+      return [];
+    }
+  };
+
   // Favorites handling
-  const addToFavorites = (productId: string) => {
-    if (!user) {
-      toast("Not logged in", {
+  const addToFavorites = async (productId: string) => {
+    if (!authUser) {
+      toast.error("Not logged in", {
         description: "You must be logged in to add favorites",
       });
       return;
     }
 
-    const favorites = user.favorites || [];
-    if (!favorites.includes(productId)) {
-      const updatedFavorites = [...favorites, productId];
-      const updatedUser = { ...user, favorites: updatedFavorites };
+    try {
+      // Check if already in favorites
+      const isFav = await isFavorite(productId);
+      if (isFav) return;
       
-      // Update mock user
-      const mockUserIndex = MOCK_USERS.findIndex(u => u.id === user.id);
-      if (mockUserIndex !== -1) {
-        MOCK_USERS[mockUserIndex].favorites = updatedFavorites;
+      // Add to favorites in database
+      const { error } = await supabase
+        .from('favorites')
+        .insert({
+          user_id: authUser.id,
+          product_id: productId,
+        });
+      
+      if (error) {
+        if (error.code === '23505') { // Unique violation
+          toast.info("Already in favorites");
+          return;
+        }
+        
+        toast.error("Failed to add to favorites", {
+          description: error.message,
+        });
+        return;
       }
       
-      setUser(updatedUser);
-      localStorage.setItem('ayurnest_user', JSON.stringify(updatedUser));
-      toast("Added to favorites!");
+      // Update local state
+      const updatedFavorites = [...favorites, productId];
+      setFavorites(updatedFavorites);
+      
+      if (user) {
+        setUser({
+          ...user,
+          favorites: updatedFavorites,
+        });
+      }
+      
+      toast.success("Added to favorites!");
+    } catch (error) {
+      console.error('Add to favorites error:', error);
     }
   };
 
-  const removeFromFavorites = (productId: string) => {
-    if (!user || !user.favorites) return;
-    
-    const updatedFavorites = user.favorites.filter(id => id !== productId);
-    const updatedUser = { ...user, favorites: updatedFavorites };
-    
-    // Update mock user
-    const mockUserIndex = MOCK_USERS.findIndex(u => u.id === user.id);
-    if (mockUserIndex !== -1) {
-      MOCK_USERS[mockUserIndex].favorites = updatedFavorites;
+  const removeFromFavorites = async (productId: string) => {
+    if (!authUser) {
+      toast.error("Not logged in", {
+        description: "You must be logged in to remove favorites",
+      });
+      return;
     }
     
-    setUser(updatedUser);
-    localStorage.setItem('ayurnest_user', JSON.stringify(updatedUser));
-    toast("Removed from favorites!");
+    try {
+      // Remove from favorites in database
+      const { error } = await supabase
+        .from('favorites')
+        .delete()
+        .eq('user_id', authUser.id)
+        .eq('product_id', productId);
+      
+      if (error) {
+        toast.error("Failed to remove from favorites", {
+          description: error.message,
+        });
+        return;
+      }
+      
+      // Update local state
+      const updatedFavorites = favorites.filter(id => id !== productId);
+      setFavorites(updatedFavorites);
+      
+      if (user) {
+        setUser({
+          ...user,
+          favorites: updatedFavorites,
+        });
+      }
+      
+      toast.success("Removed from favorites!");
+    } catch (error) {
+      console.error('Remove from favorites error:', error);
+    }
   };
 
-  const isFavorite = (productId: string): boolean => {
-    return user?.favorites?.includes(productId) || false;
+  const isFavorite = async (productId: string): Promise<boolean> => {
+    if (!authUser) return false;
+    
+    // Check local state first
+    if (favorites.includes(productId)) return true;
+    
+    try {
+      const { data, error, count } = await supabase
+        .from('favorites')
+        .select('*', { count: 'exact' })
+        .eq('user_id', authUser.id)
+        .eq('product_id', productId);
+      
+      if (error) {
+        console.error('Check favorite error:', error);
+        return false;
+      }
+      
+      return (count !== null && count > 0);
+    } catch (error) {
+      console.error('Is favorite error:', error);
+      return false;
+    }
   };
 
   // Add an order to user history
-  const addOrder = (orderData: Omit<Order, 'id' | 'date'>) => {
-    if (!user) {
-      toast("Not logged in", {
+  const addOrder = async (orderData: Omit<Order, 'id' | 'date'>) => {
+    if (!authUser) {
+      toast.error("Not logged in", {
         description: "You must be logged in to place an order",
       });
       return;
     }
 
-    const newOrder: Order = {
-      id: Math.random().toString(36).substring(2, 11),
-      date: new Date().toISOString(),
-      ...orderData
-    };
-
-    const updatedOrderHistory = [...(user.orderHistory || []), newOrder];
-    const updatedUser = { ...user, orderHistory: updatedOrderHistory };
-
-    // Update mock user
-    const mockUserIndex = MOCK_USERS.findIndex(u => u.id === user.id);
-    if (mockUserIndex !== -1) {
-      MOCK_USERS[mockUserIndex].orderHistory = updatedOrderHistory;
+    try {
+      // Insert order into the database
+      const { data: orderInsert, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          user_id: authUser.id,
+          status: orderData.status,
+          delivery_address: orderData.deliveryAddress,
+          payment_method: orderData.paymentMethod,
+          total_amount: orderData.totalAmount,
+          tracking_info: orderData.trackingDetails || {
+            currentStatus: 'processing',
+            lastUpdated: new Date().toISOString(),
+          },
+        })
+        .select()
+        .single();
+      
+      if (orderError) {
+        toast.error("Failed to place order", {
+          description: orderError.message,
+        });
+        throw orderError;
+      }
+      
+      // Insert order items
+      const orderItems = orderData.products.map(product => ({
+        order_id: orderInsert.id,
+        product_id: product.id,
+        product_name: product.name,
+        quantity: product.quantity,
+        price: product.price,
+      }));
+      
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .insert(orderItems);
+      
+      if (itemsError) {
+        toast.error("Failed to save order items", {
+          description: itemsError.message,
+        });
+        throw itemsError;
+      }
+      
+      // Create a notification for the user
+      const { error: notificationError } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: authUser.id,
+          message: `Your order has been placed successfully and is now ${orderData.status}`,
+          type: 'success',
+        });
+      
+      if (notificationError) {
+        console.error('Failed to create notification:', notificationError);
+      }
+      
+      // Update local user state with the new order
+      const newOrder = {
+        id: orderInsert.id,
+        date: orderInsert.created_at,
+        ...orderData,
+      };
+      
+      if (user) {
+        setUser({
+          ...user,
+          orderHistory: [newOrder, ...(user.orderHistory || [])],
+        });
+      }
+      
+      toast.success("Order placed successfully!");
+    } catch (error) {
+      console.error('Add order error:', error);
+      throw error;
     }
-
-    setUser(updatedUser);
-    localStorage.setItem('ayurnest_user', JSON.stringify(updatedUser));
-    toast("Order placed successfully!");
   };
 
   // Add feedback
-  const addFeedback = (feedbackData: Omit<Feedback, 'id' | 'userId' | 'username' | 'date'>): Feedback | undefined => {
-    if (!user) {
-      toast("Not logged in", {
+  const addFeedback = async (feedbackData: Omit<Feedback, 'id' | 'userId' | 'username' | 'date'>): Promise<Feedback | undefined> => {
+    if (!authUser || !user) {
+      toast.error("Not logged in", {
         description: "You must be logged in to submit feedback",
       });
       return undefined;
     }
 
-    const newFeedback: Feedback = {
-      id: Math.random().toString(36).substring(2, 11),
-      userId: user.id,
-      username: user.username,
-      date: new Date().toISOString(),
-      ...feedbackData
-    };
-
-    GLOBAL_FEEDBACK.push(newFeedback);
-    toast("Feedback submitted successfully!");
-    return newFeedback;
+    try {
+      const { data, error } = await supabase
+        .from('feedback')
+        .insert({
+          user_id: authUser.id,
+          username: user.username,
+          rating: feedbackData.rating,
+          message: feedbackData.message,
+        })
+        .select()
+        .single();
+      
+      if (error) {
+        toast.error("Failed to submit feedback", {
+          description: error.message,
+        });
+        throw error;
+      }
+      
+      const newFeedback: Feedback = {
+        id: data.id,
+        userId: data.user_id,
+        username: data.username,
+        rating: data.rating,
+        message: data.message,
+        date: data.created_at,
+      };
+      
+      toast.success("Feedback submitted successfully!");
+      return newFeedback;
+    } catch (error) {
+      console.error('Add feedback error:', error);
+      return undefined;
+    }
   };
 
   // Get all feedback
-  const getFeedback = (): Feedback[] => {
-    return GLOBAL_FEEDBACK;
+  const getFeedback = async (): Promise<Feedback[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('feedback')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('Get feedback error:', error);
+        return [];
+      }
+      
+      return data.map(item => ({
+        id: item.id,
+        userId: item.user_id,
+        username: item.username,
+        rating: item.rating,
+        message: item.message,
+        date: item.created_at,
+      }));
+    } catch (error) {
+      console.error('Get feedback error:', error);
+      return [];
+    }
   };
 
   // Submit support message
-  const submitSupportMessage = async (message: string): Promise<void> => {
-    if (!user) {
-      toast("Not logged in", {
+  const submitSupportMessage = async (issueType: string, message: string): Promise<void> => {
+    if (!authUser) {
+      toast.error("Not logged in", {
         description: "You must be logged in to contact support",
       });
       throw new Error('You must be logged in to contact support');
     }
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // In a real app, this would send the message to a support system
-    toast("Message sent", {
-      description: "Your support message has been sent successfully",
-    });
-  };
-
-  // Check if dark mode should be enabled on initial load
-  useEffect(() => {
-    if (user?.preferences?.darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
+    try {
+      const { error } = await supabase
+        .from('support_requests')
+        .insert({
+          user_id: authUser.id,
+          issue_type: issueType,
+          message: message,
+        });
+      
+      if (error) {
+        toast.error("Failed to send support message", {
+          description: error.message,
+        });
+        throw error;
+      }
+      
+      toast.success("Support message sent", {
+        description: "Your message has been sent to our support team",
+      });
+    } catch (error) {
+      console.error('Submit support message error:', error);
+      throw error;
     }
-  }, [user]);
+  };
 
   return (
     <AuthContext.Provider 
       value={{ 
         user, 
+        authUser,
+        session,
         loading, 
         login, 
         signup, 
@@ -540,7 +962,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addFeedback,
         getFeedback,
         submitSupportMessage,
-        getDarkMode
+        getDarkMode,
+        getFavorites,
+        refreshUserProfile,
       }}
     >
       {children}

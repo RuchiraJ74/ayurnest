@@ -1,21 +1,37 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getProductById, getRelatedProducts } from '@/data/productData';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { ArrowLeft, Minus, Plus, ShoppingBag, Check, Star } from 'lucide-react';
+import { ArrowLeft, Minus, Plus, ShoppingBag, Check, Star, Heart } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { motion } from 'framer-motion';
+import { useAuth } from '@/context/AuthContext';
 
 const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { addItem, items } = useCart();
-  const { toast } = useToast();
+  const { addToFavorites, removeFromFavorites, isFavorite } = useAuth();
+  const [isFav, setIsFav] = useState(false);
+  const [isCheckingFav, setIsCheckingFav] = useState(true);
   
   const product = id ? getProductById(id) : null;
+  
+  useEffect(() => {
+    const checkFavorite = async () => {
+      if (product) {
+        setIsCheckingFav(true);
+        const result = await isFavorite(product.id);
+        setIsFav(result);
+        setIsCheckingFav(false);
+      }
+    };
+    
+    checkFavorite();
+  }, [product, isFavorite]);
   
   if (!product) {
     return (
@@ -34,10 +50,19 @@ const ProductDetailPage: React.FC = () => {
   
   const handleAddToCart = () => {
     addItem(product);
-    toast({
-      title: "Added to Cart",
+    toast.success("Added to Cart", {
       description: `${product.name} added to your cart`,
     });
+  };
+  
+  const handleFavoriteToggle = async () => {
+    if (isFav) {
+      await removeFromFavorites(product.id);
+      setIsFav(false);
+    } else {
+      await addToFavorites(product.id);
+      setIsFav(true);
+    }
   };
   
   const relatedProducts = getRelatedProducts(product);
@@ -57,6 +82,19 @@ const ProductDetailPage: React.FC = () => {
           onClick={() => navigate('/shop')}
         >
           <ArrowLeft size={20} />
+        </Button>
+        
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute top-4 right-4 bg-white/80 backdrop-blur-sm hover:bg-white/90"
+          onClick={handleFavoriteToggle}
+          disabled={isCheckingFav}
+        >
+          <Heart 
+            size={20} 
+            className={isFav ? "fill-red-500 text-red-500" : ""}
+          />
         </Button>
       </div>
       
