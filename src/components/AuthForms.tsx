@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Leaf, User, Mail, Lock } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export const SignupForm: React.FC = () => {
@@ -72,13 +72,19 @@ export const SignupForm: React.FC = () => {
         className="flex flex-col items-center justify-center flex-1 w-full max-w-md mx-auto"
       >
         <div className="text-center mb-8">
+          <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-md">
+            <Leaf size={32} className="text-ayur-primary" />
+          </div>
           <h1 className="text-3xl font-playfair font-bold text-ayur-secondary mb-1">Create Account</h1>
           <p className="text-gray-600">Begin your Ayurvedic wellness journey</p>
         </div>
         
         <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-lg p-8 w-full space-y-5">
           <div className="space-y-2">
-            <label htmlFor="username" className="text-sm font-medium text-gray-700">Username</label>
+            <label htmlFor="username" className="text-sm font-medium text-gray-700 flex items-center">
+              <User size={16} className="mr-2 text-ayur-primary" />
+              Username
+            </label>
             <Input
               id="username"
               type="text"
@@ -90,7 +96,10 @@ export const SignupForm: React.FC = () => {
           </div>
           
           <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-medium text-gray-700">Email</label>
+            <label htmlFor="email" className="text-sm font-medium text-gray-700 flex items-center">
+              <Mail size={16} className="mr-2 text-ayur-primary" />
+              Email
+            </label>
             <Input
               id="email"
               type="email"
@@ -102,7 +111,10 @@ export const SignupForm: React.FC = () => {
           </div>
           
           <div className="space-y-2">
-            <label htmlFor="password" className="text-sm font-medium text-gray-700">Password</label>
+            <label htmlFor="password" className="text-sm font-medium text-gray-700 flex items-center">
+              <Lock size={16} className="mr-2 text-ayur-primary" />
+              Password
+            </label>
             <Input
               id="password"
               type="password"
@@ -114,7 +126,10 @@ export const SignupForm: React.FC = () => {
           </div>
           
           <div className="space-y-2">
-            <label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">Confirm Password</label>
+            <label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700 flex items-center">
+              <Lock size={16} className="mr-2 text-ayur-primary" />
+              Confirm Password
+            </label>
             <Input
               id="confirmPassword"
               type="password"
@@ -219,13 +234,23 @@ export const LoginForm: React.FC = () => {
         className="flex flex-col items-center justify-center flex-1 w-full max-w-md mx-auto"
       >
         <div className="text-center mb-8">
+          <div className="bg-white w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 shadow-md">
+            <img
+              src="https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&q=80&w=400&h=400"
+              alt="Relaxing ayurvedic items"
+              className="w-full h-full object-cover rounded-full"
+            />
+          </div>
           <h1 className="text-3xl font-playfair font-bold text-ayur-secondary mb-1">Welcome Back</h1>
           <p className="text-gray-600">Continue your wellness journey</p>
         </div>
         
         <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-lg p-8 w-full space-y-5">
           <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-medium text-gray-700">Email</label>
+            <label htmlFor="email" className="text-sm font-medium text-gray-700 flex items-center">
+              <Mail size={16} className="mr-2 text-ayur-primary" />
+              Email
+            </label>
             <Input
               id="email"
               type="email"
@@ -238,10 +263,13 @@ export const LoginForm: React.FC = () => {
           
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label htmlFor="password" className="text-sm font-medium text-gray-700">Password</label>
-              <button type="button" className="text-xs text-ayur-primary hover:underline">
+              <label htmlFor="password" className="text-sm font-medium text-gray-700 flex items-center">
+                <Lock size={16} className="mr-2 text-ayur-primary" />
+                Password
+              </label>
+              <Link to="/forgot-password" className="text-xs text-ayur-primary hover:underline">
                 Forgot password?
-              </button>
+              </Link>
             </div>
             <Input
               id="password"

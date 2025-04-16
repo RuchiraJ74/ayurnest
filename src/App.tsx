@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
+import { Toaster as Sonner } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
@@ -14,6 +14,7 @@ import { CartProvider } from "@/context/CartContext";
 // Pages
 import Welcome from "@/components/Welcome";
 import { SignupForm, LoginForm } from "@/components/AuthForms";
+import ForgotPasswordForm from "@/components/ForgotPasswordForm";
 import DoshaTest from "@/components/DoshaTest";
 import DoshaResult from "@/components/DoshaResult";
 import AppLayout from "@/components/AppLayout";
@@ -25,6 +26,8 @@ import RemedyDetailPage from "@/pages/RemedyDetailPage";
 import ShopPage from "@/pages/ShopPage";
 import ProductDetailPage from "@/pages/ProductDetailPage";
 import CartPage from "@/pages/CartPage";
+import CheckoutPage from "@/pages/CheckoutPage";
+import OrderTrackingPage from "@/pages/OrderTrackingPage";
 import ProfilePage from "@/pages/ProfilePage";
 import NotFound from "@/pages/NotFound";
 
@@ -74,6 +77,7 @@ const App = () => (
                 <Route path="/" element={<Welcome />} />
                 <Route path="/signup" element={<SignupForm />} />
                 <Route path="/login" element={<LoginForm />} />
+                <Route path="/forgot-password" element={<ForgotPasswordForm />} />
                 <Route path="/dosha-test" element={<DoshaTest />} />
                 <Route path="/dosha-result" element={<DoshaResult />} />
                 
@@ -91,6 +95,8 @@ const App = () => (
                   <Route path="/shop" element={<ShopPage />} />
                   <Route path="/shop/:id" element={<ProductDetailPage />} />
                   <Route path="/cart" element={<CartPage />} />
+                  <Route path="/checkout" element={<CheckoutPage />} />
+                  <Route path="/order-tracking" element={<OrderTrackingPage />} />
                   <Route path="/profile" element={<ProfilePage />} />
                 </Route>
                 

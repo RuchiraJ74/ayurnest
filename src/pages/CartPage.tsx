@@ -15,17 +15,7 @@ const CartPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   
   const handleCheckout = () => {
-    setLoading(true);
-    // Simulating a checkout process
-    setTimeout(() => {
-      toast({
-        title: "Order Placed Successfully!",
-        description: "Your Ayurvedic products will be delivered soon.",
-      });
-      clearCart();
-      navigate('/home');
-      setLoading(false);
-    }, 1500);
+    navigate('/checkout');
   };
   
   return (

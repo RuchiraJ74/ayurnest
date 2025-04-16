@@ -75,39 +75,25 @@ const RemediesPage: React.FC = () => {
               transition={{ delay: index * 0.05 }}
             >
               <Card 
-                className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+                className="p-4 cursor-pointer hover:shadow-md transition-shadow"
                 onClick={() => navigate(`/remedies/${remedy.id}`)}
               >
-                <div className="relative h-40 w-full">
-                  <img 
-                    src={remedy.image} 
-                    alt={remedy.name} 
-                    className="absolute inset-0 w-full h-full object-cover"
-                  />
+                <div className="flex justify-between items-start">
+                  <h3 className="font-medium text-lg">{remedy.name}</h3>
+                  <span className="text-xs bg-ayur-light text-ayur-primary px-2 py-1 rounded-full">
+                    {remedy.category}
+                  </span>
                 </div>
-                <div className="p-4">
-                  <div className="flex justify-between items-start">
-                    <h3 className="font-medium text-lg">{remedy.name}</h3>
-                    <span className="text-xs bg-ayur-light text-ayur-primary px-2 py-1 rounded-full">
-                      {remedy.category}
+                <p className="text-sm text-gray-600 mt-2">{remedy.description}</p>
+                <div className="mt-3 flex gap-2 flex-wrap">
+                  {remedy.suitableFor.map((dosha, idx) => (
+                    <span 
+                      key={idx} 
+                      className="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded-full"
+                    >
+                      {dosha}
                     </span>
-                  </div>
-                  <p className="text-sm text-gray-600 mt-2 line-clamp-2">{remedy.description}</p>
-                  <div className="mt-3 flex gap-2 flex-wrap">
-                    {remedy.suitableFor.slice(0, 2).map((dosha, idx) => (
-                      <span 
-                        key={idx} 
-                        className="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded-full"
-                      >
-                        {dosha}
-                      </span>
-                    ))}
-                    {remedy.suitableFor.length > 2 && (
-                      <span className="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded-full">
-                        +{remedy.suitableFor.length - 2} more
-                      </span>
-                    )}
-                  </div>
+                  ))}
                 </div>
               </Card>
             </motion.div>

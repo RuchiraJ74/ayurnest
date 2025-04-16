@@ -2,24 +2,33 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { products, categories, getProductsByCategory } from '@/data/productData';
-import { Search, ShoppingBag, Filter } from 'lucide-react';
+import { Search, ShoppingBag, Filter, X } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/CartContext';
 import { motion } from 'framer-motion';
 
 const ShopPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState('All Products');
   const [searchTerm, setSearchTerm] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 50]);
   const { totalItems } = useCart();
   const navigate = useNavigate();
   
-  const filteredProducts = getProductsByCategory(selectedCategory).filter(product => 
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredProducts = getProductsByCategory(selectedCategory).filter(product => {
+    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         product.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesPrice = product.price >= priceRange[0] && product.price <= priceRange[1];
+    return matchesSearch && matchesPrice;
+  });
+  
+  const handlePriceRangeChange = (min: number, max: number) => {
+    setPriceRange([min, max]);
+  };
   
   return (
     <div className="max-w-md mx-auto p-4 pb-20">
@@ -67,10 +76,72 @@ const ShopPage: React.FC = () => {
             className="pl-10 bg-white rounded-full border-gray-200"
           />
         </div>
-        <button className="p-2 bg-white rounded-full shadow-sm">
+        <button 
+          className={`p-2 rounded-full shadow-sm ${showFilters ? 'bg-ayur-primary text-white' : 'bg-white'}`}
+          onClick={() => setShowFilters(!showFilters)}
+        >
           <Filter size={20} />
         </button>
       </motion.div>
+      
+      {showFilters && (
+        <motion.div 
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          className="bg-white rounded-lg shadow-sm p-4 mb-6"
+        >
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-medium">Filters</h3>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => {
+                setPriceRange([0, 50]);
+                setShowFilters(false);
+              }}
+            >
+              <X size={16} className="mr-1" /> Clear
+            </Button>
+          </div>
+          
+          <div className="mb-4">
+            <h4 className="text-sm font-medium mb-2">Price Range</h4>
+            <div className="grid grid-cols-3 gap-2">
+              <Button 
+                variant={priceRange[0] === 0 && priceRange[1] === 15 ? "default" : "outline"}
+                size="sm"
+                className="w-full"
+                onClick={() => handlePriceRangeChange(0, 15)}
+              >
+                Under $15
+              </Button>
+              <Button 
+                variant={priceRange[0] === 15 && priceRange[1] === 30 ? "default" : "outline"}
+                size="sm"
+                className="w-full"
+                onClick={() => handlePriceRangeChange(15, 30)}
+              >
+                $15 - $30
+              </Button>
+              <Button 
+                variant={priceRange[0] === 30 && priceRange[1] === 50 ? "default" : "outline"}
+                size="sm"
+                className="w-full"
+                onClick={() => handlePriceRangeChange(30, 50)}
+              >
+                Over $30
+              </Button>
+            </div>
+          </div>
+          
+          <Button 
+            className="w-full"
+            onClick={() => setShowFilters(false)}
+          >
+            Apply Filters
+          </Button>
+        </motion.div>
+      )}
       
       <div className="mb-6 overflow-x-auto pb-2">
         <Tabs 
@@ -105,7 +176,7 @@ const ShopPage: React.FC = () => {
                 className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
                 onClick={() => navigate(`/shop/${product.id}`)}
               >
-                <div className="relative pt-[100%]">
+                <div className="relative aspect-square">
                   <img 
                     src={product.image} 
                     alt={product.name} 
@@ -123,7 +194,7 @@ const ShopPage: React.FC = () => {
         ) : (
           <div className="col-span-2 text-center py-10">
             <h3 className="text-gray-500">No products found</h3>
-            <p className="text-sm text-gray-400 mt-2">Try adjusting your search term</p>
+            <p className="text-sm text-gray-400 mt-2">Try adjusting your search term or filters</p>
           </div>
         )}
       </div>

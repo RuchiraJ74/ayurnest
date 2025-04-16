@@ -1,5 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { toast } from 'sonner';
 
 // Define user type
 type User = {
@@ -7,6 +8,7 @@ type User = {
   username: string;
   email: string;
   dosha?: 'vata' | 'pitta' | 'kapha' | 'vata-pitta' | 'pitta-kapha' | 'vata-kapha' | 'tridosha';
+  joinDate?: string;
 };
 
 // Define context type
@@ -17,6 +19,7 @@ type AuthContextType = {
   signup: (username: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   updateUserDosha: (dosha: string) => void;
+  resetPassword: (email: string) => Promise<void>;
 };
 
 // Create context
@@ -30,6 +33,7 @@ const MOCK_USERS = [
     email: 'demo@example.com',
     password: 'password123',
     dosha: 'vata-pitta',
+    joinDate: '2023-04-15',
   },
 ];
 
@@ -61,10 +65,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         username: foundUser.username,
         email: foundUser.email,
         dosha: foundUser.dosha,
+        joinDate: foundUser.joinDate,
       };
       setUser(userData);
       localStorage.setItem('ayurnest_user', JSON.stringify(userData));
+      toast.success("Successfully logged in!");
     } else {
+      toast.error("Invalid credentials");
       throw new Error('Invalid credentials');
     }
     
@@ -80,14 +87,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     // Check if email already exists
     if (MOCK_USERS.some(u => u.email === email)) {
+      toast.error("Email already in use");
       throw new Error('Email already in use');
     }
+    
+    const currentDate = new Date().toISOString().split('T')[0];
     
     const newUser = {
       id: Math.random().toString(36).substr(2, 9),
       username,
       email,
       password,
+      joinDate: currentDate,
     };
     
     // In a real app, this would be a server-side operation
@@ -97,10 +108,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       id: newUser.id,
       username: newUser.username,
       email: newUser.email,
+      joinDate: newUser.joinDate,
     };
     
     setUser(userData);
     localStorage.setItem('ayurnest_user', JSON.stringify(userData));
+    toast.success("Account created successfully!");
     setLoading(false);
   };
 
@@ -108,6 +121,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     setUser(null);
     localStorage.removeItem('ayurnest_user');
+    toast.success("Logged out successfully");
   };
 
   // Update user's dosha
@@ -116,11 +130,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const updatedUser = { ...user, dosha };
       setUser(updatedUser);
       localStorage.setItem('ayurnest_user', JSON.stringify(updatedUser));
+      toast.success("Dosha updated successfully");
     }
+  };
+  
+  // Reset password functionality
+  const resetPassword = async (email: string) => {
+    setLoading(true);
+    
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const userExists = MOCK_USERS.some(u => u.email === email);
+    
+    if (!userExists) {
+      toast.error("No account found with this email");
+      throw new Error('No account found with this email');
+    }
+    
+    // In a real app, this would send a password reset email
+    toast.success("Password reset link sent to your email");
+    setLoading(false);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout, updateUserDosha }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout, updateUserDosha, resetPassword }}>
       {children}
     </AuthContext.Provider>
   );
