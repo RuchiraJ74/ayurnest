@@ -1,172 +1,101 @@
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 90 60% 98%;
-    --foreground: 90 10% 20%;
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
 
     --card: 0 0% 100%;
-    --card-foreground: 90 10% 20%;
+    --card-foreground: 222.2 84% 4.9%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 90 10% 20%;
+    --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 122 39% 49%;
-    --primary-foreground: 90 95% 95%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
 
-    --secondary: 123 45% 34%;
-    --secondary-foreground: 90 95% 95%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
 
-    --muted: 90 50% 90%;
-    --muted-foreground: 90 10% 40%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 90 60% 90%;
-    --accent-foreground: 90 10% 20%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 90 40% 85%;
-    --input: 90 40% 85%;
-    --ring: 122 39% 49%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
 
-    --radius: 0.8rem;
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
-  html, body {
-    -webkit-tap-highlight-color: transparent;
-    overscroll-behavior: none;
-    overflow-x: hidden;
-    width: 100%;
-    position: relative;
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
   }
 
   body {
-    @apply bg-ayur-light text-ayur-text font-sans min-h-screen;
-    font-family: 'Inter', sans-serif;
-    -webkit-overflow-scrolling: touch;
-    overflow-x: hidden;
+    @apply bg-background text-foreground;
   }
-
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-playfair;
-  }
-
-  input, textarea, select, button {
-    appearance: none;
-    -webkit-appearance: none;
-    border-radius: var(--radius);
-  }
-
-  /* Safe area insets for iOS */
-  @supports (padding-top: env(safe-area-inset-top)) {
-    .safe-top {
-      padding-top: env(safe-area-inset-top);
-    }
-    .safe-bottom {
-      padding-bottom: env(safe-area-inset-bottom);
-    }
-    .safe-left {
-      padding-left: env(safe-area-inset-left);
-    }
-    .safe-right {
-      padding-right: env(safe-area-inset-right);
-    }
-  }
-}
-
-@layer components {
-  .ayur-card {
-    @apply bg-white rounded-xl shadow-md p-4 md:p-5 hover:shadow-lg transition-shadow;
-  }
-
-  .ayur-button {
-    @apply bg-ayur-primary text-white px-5 py-3 rounded-full hover:bg-ayur-secondary transition-colors font-medium active:scale-95 transform;
-  }
-
-  .ayur-container {
-    @apply max-w-md mx-auto px-4 py-4 md:py-6;
-  }
-  
-  .ayur-category-icon {
-    @apply w-14 h-14 flex items-center justify-center rounded-full bg-white text-ayur-primary shadow-md mx-auto mb-3;
-  }
-  
-  .ayur-header {
-    @apply text-xl font-playfair font-semibold text-ayur-secondary;
-  }
-  
-  .bottom-tab {
-    @apply flex flex-col items-center justify-center py-1 px-2 text-xs font-medium relative;
-  }
-  
-  .bottom-tab-active {
-    @apply text-ayur-primary;
-  }
-  
-  .bottom-tab-inactive {
-    @apply text-gray-500;
-  }
-
-  /* Mobile-specific styles */
-  .mobile-container {
-    @apply px-4 py-3 max-w-md mx-auto;
-  }
-
-  .mobile-section {
-    @apply mb-4;
-  }
-
-  .mobile-card {
-    @apply rounded-xl shadow-sm p-3;
-  }
-
-  .mobile-header {
-    @apply text-xl font-semibold mb-3 font-playfair;
-  }
-
-  .mobile-nav {
-    @apply fixed bottom-0 left-0 right-0 bg-white shadow-top h-16 flex items-center justify-around z-50;
-  }
-
-  /* Improved tap targets for mobile */
-  .mobile-tap-target {
-    @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
-  }
-}
-
-/* Adding bottom safe area on iOS for the bottom navigation */
-.bottom-safe {
-  padding-bottom: max(16px, env(safe-area-inset-bottom, 16px));
-}
-
-/* Shadow for top navigation */
-.shadow-top {
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
-}
-
-/* Full-page transitions for mobile */
-.page-transition-enter {
-  opacity: 0;
-  transform: translateY(20px);
-}
-
-.page-transition-enter-active {
-  opacity: 1;
-  transform: translateY(0);
-  transition: opacity 300ms, transform 300ms;
-}
-
-.page-transition-exit {
-  opacity: 1;
-}
-
-.page-transition-exit-active {
-  opacity: 0;
-  transition: opacity 300ms;
 }
