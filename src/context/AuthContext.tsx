@@ -7,7 +7,7 @@ type User = {
   id: string;
   username: string;
   email: string;
-  dosha?: 'vata' | 'pitta' | 'kapha' | 'vata-pitta' | 'pitta-kapha' | 'vata-kapha' | 'tridosha';
+  dosha?: 'vata' | 'pitta' | 'kapha' | 'vata-pitta' | 'pitta-kapha' | 'vata-kapha' | 'tridosha' | undefined;
   joinDate?: string;
 };
 
@@ -25,8 +25,18 @@ type AuthContextType = {
 // Create context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Mock user type
+type MockUser = {
+  id: string;
+  username: string;
+  email: string;
+  password: string;
+  dosha?: 'vata' | 'pitta' | 'kapha' | 'vata-pitta' | 'pitta-kapha' | 'vata-kapha' | 'tridosha';
+  joinDate?: string;
+};
+
 // Mock users data (simulating backend)
-const MOCK_USERS = [
+const MOCK_USERS: MockUser[] = [
   {
     id: '1',
     username: 'demo',
@@ -60,7 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const foundUser = MOCK_USERS.find(u => u.email === email && u.password === password);
     
     if (foundUser) {
-      const userData = {
+      const userData: User = {
         id: foundUser.id,
         username: foundUser.username,
         email: foundUser.email,
@@ -93,7 +103,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     const currentDate = new Date().toISOString().split('T')[0];
     
-    const newUser = {
+    const newUser: MockUser = {
       id: Math.random().toString(36).substr(2, 9),
       username,
       email,
@@ -104,7 +114,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // In a real app, this would be a server-side operation
     MOCK_USERS.push(newUser);
     
-    const userData = {
+    const userData: User = {
       id: newUser.id,
       username: newUser.username,
       email: newUser.email,
@@ -127,7 +137,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Update user's dosha
   const updateUserDosha = (dosha: string) => {
     if (user) {
-      const updatedUser = { ...user, dosha };
+      const updatedUser: User = { 
+        ...user, 
+        dosha: dosha as 'vata' | 'pitta' | 'kapha' | 'vata-pitta' | 'pitta-kapha' | 'vata-kapha' | 'tridosha' 
+      };
       setUser(updatedUser);
       localStorage.setItem('ayurnest_user', JSON.stringify(updatedUser));
       toast.success("Dosha updated successfully");

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -7,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { ArrowLeft, CreditCard, CashIcon, Smartphone, Info, CheckCircle } from 'lucide-react';
+import { ArrowLeft, CreditCard, Banknote, Smartphone, Info, CheckCircle } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
@@ -65,7 +64,6 @@ const CheckoutPage: React.FC = () => {
       return false;
     }
     
-    // Validate phone number
     const phoneRegex = /^\d{10}$/;
     if (!phoneRegex.test(address.phoneNumber)) {
       toast({
@@ -76,7 +74,6 @@ const CheckoutPage: React.FC = () => {
       return false;
     }
     
-    // Validate pincode
     const pincodeRegex = /^\d{6}$/;
     if (!pincodeRegex.test(address.pincode)) {
       toast({
@@ -92,7 +89,6 @@ const CheckoutPage: React.FC = () => {
   
   const validatePayment = () => {
     if (paymentMethod === 'card') {
-      // Validate card details
       if (!cardNumber || !cardExpiry || !cardCvv) {
         toast({
           title: "Missing card information",
@@ -102,7 +98,6 @@ const CheckoutPage: React.FC = () => {
         return false;
       }
       
-      // Simple validation for card number (16 digits)
       if (!/^\d{16}$/.test(cardNumber.replace(/\s/g, ''))) {
         toast({
           title: "Invalid card number",
@@ -112,7 +107,6 @@ const CheckoutPage: React.FC = () => {
         return false;
       }
       
-      // Simple validation for expiry date (MM/YY)
       if (!/^\d{2}\/\d{2}$/.test(cardExpiry)) {
         toast({
           title: "Invalid expiry date",
@@ -122,7 +116,6 @@ const CheckoutPage: React.FC = () => {
         return false;
       }
       
-      // Simple validation for CVV (3 digits)
       if (!/^\d{3}$/.test(cardCvv)) {
         toast({
           title: "Invalid CVV",
@@ -132,7 +125,6 @@ const CheckoutPage: React.FC = () => {
         return false;
       }
     } else if (paymentMethod === 'upi') {
-      // Validate UPI ID
       if (!upiId) {
         toast({
           title: "Missing UPI ID",
@@ -142,7 +134,6 @@ const CheckoutPage: React.FC = () => {
         return false;
       }
       
-      // Simple validation for UPI ID (username@provider)
       if (!/^[\w.-]+@[\w.-]+$/.test(upiId)) {
         toast({
           title: "Invalid UPI ID",
@@ -183,17 +174,14 @@ const CheckoutPage: React.FC = () => {
   const handlePlaceOrder = () => {
     setLoading(true);
     
-    // Generate a random order ID
     const newOrderId = 'AYR-' + Math.floor(10000 + Math.random() * 90000);
     setOrderId(newOrderId);
     
-    // Simulate payment processing and order placement
     setTimeout(() => {
       clearCart();
       setCurrentStep('confirmation');
       setLoading(false);
       
-      // Store the order in localStorage for tracking
       const order = {
         id: newOrderId,
         items: items.map(item => ({
@@ -211,10 +199,9 @@ const CheckoutPage: React.FC = () => {
         paymentMethod: paymentMethod,
         status: 'processing',
         createdAt: new Date().toISOString(),
-        estimatedDelivery: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString() // 5 days from now
+        estimatedDelivery: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString()
       };
       
-      // Get existing orders or initialize empty array
       const existingOrders = JSON.parse(localStorage.getItem('ayurnest_orders') || '[]');
       localStorage.setItem('ayurnest_orders', JSON.stringify([order, ...existingOrders]));
     }, 2000);
@@ -357,7 +344,7 @@ const CheckoutPage: React.FC = () => {
                         placeholder="1234 5678 9012 3456"
                         value={cardNumber}
                         onChange={handleCardNumberChange}
-                        maxLength={19} // 16 digits + 3 spaces
+                        maxLength={19}
                       />
                     </div>
                     
@@ -369,7 +356,7 @@ const CheckoutPage: React.FC = () => {
                           placeholder="MM/YY"
                           value={cardExpiry}
                           onChange={handleCardExpiryChange}
-                          maxLength={5} // MM/YY
+                          maxLength={5}
                         />
                       </div>
                       <div className="space-y-2">
@@ -420,7 +407,7 @@ const CheckoutPage: React.FC = () => {
               <RadioGroupItem value="cod" id="cod" className="mt-1" />
               <div className="ml-3">
                 <Label htmlFor="cod" className="font-medium flex items-center">
-                  <CashIcon className="mr-2 h-5 w-5" /> Cash on Delivery
+                  <Banknote className="mr-2 h-5 w-5" /> Cash on Delivery
                 </Label>
                 <p className="text-sm text-gray-500 mt-1">Pay when your order is delivered</p>
               </div>
@@ -509,7 +496,7 @@ const CheckoutPage: React.FC = () => {
         <div className="flex items-center">
           {paymentMethod === 'card' && <CreditCard className="mr-2 h-5 w-5" />}
           {paymentMethod === 'upi' && <Smartphone className="mr-2 h-5 w-5" />}
-          {paymentMethod === 'cod' && <CashIcon className="mr-2 h-5 w-5" />}
+          {paymentMethod === 'cod' && <Banknote className="mr-2 h-5 w-5" />}
           
           <span>
             {paymentMethod === 'card' && 'Credit/Debit Card'}
@@ -618,7 +605,6 @@ const CheckoutPage: React.FC = () => {
             <h1 className="text-2xl font-bold font-playfair text-ayur-secondary">Checkout</h1>
           </div>
           
-          {/* Progress Steps */}
           <div className="flex mb-6">
             <div className="flex-1 text-center">
               <div className={`mx-auto w-8 h-8 rounded-full mb-1 flex items-center justify-center ${
