@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/context/AuthContext';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 import { Send, HelpCircle } from 'lucide-react';
 
 const ContactSupportForm: React.FC = () => {
@@ -17,14 +17,16 @@ const ContactSupportForm: React.FC = () => {
     e.preventDefault();
     
     if (!user) {
-      toast("Not logged in", {
+      toast({
+        title: "Not logged in",
         description: "Please log in to contact support"
       });
       return;
     }
     
     if (!subject || !message) {
-      toast("Missing information", {
+      toast({
+        title: "Missing information",
         description: "Please provide both subject and message"
       });
       return;
@@ -33,14 +35,16 @@ const ContactSupportForm: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      await submitSupportMessage(`${subject}: ${message}`);
-      toast("Message sent", {
+      await submitSupportMessage(subject, message);
+      toast({
+        title: "Message sent",
         description: "Your message has been sent to our support team"
       });
       setSubject('');
       setMessage('');
     } catch (error) {
-      toast("Sending failed", {
+      toast({
+        title: "Sending failed",
         description: "Failed to send message"
       });
     } finally {

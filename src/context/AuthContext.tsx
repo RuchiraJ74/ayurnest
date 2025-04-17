@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { User, Session } from '@supabase/supabase-js';
@@ -53,6 +52,19 @@ type Feedback = {
   rating: number;
   message: string;
   date: string;
+};
+
+type TrackingInfo = {
+  currentStatus: string;
+  estimatedDelivery?: string;
+  lastUpdated: string;
+  location?: string;
+};
+
+type UserPreferences = {
+  darkMode: boolean;
+  notifications: boolean;
+  emailUpdates: boolean;
 };
 
 // Define context type
@@ -172,30 +184,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // Transform orders data
-      const orderHistory = ordersData?.map(order => ({
-        id: order.id,
-        date: order.order_date,
-        products: order.order_items.map((item: any) => ({
-          id: item.product_id,
-          name: item.product_name,
-          quantity: item.quantity,
-          price: item.price,
-        })),
-        totalAmount: order.total_amount,
-        status: order.status as 'processing' | 'shipped' | 'delivered' | 'cancelled',
-        paymentMethod: order.payment_method,
-        deliveryAddress: order.delivery_address,
-        phoneNumber: profileData?.phone_number || '',
-        trackingDetails: order.tracking_info ? {
-          currentStatus: order.tracking_info.currentStatus,
-          estimatedDelivery: order.tracking_info.estimatedDelivery,
-          lastUpdated: order.tracking_info.lastUpdated,
-          location: order.tracking_info.location,
-        } : undefined,
-      })) || [];
+      const orderHistory = ordersData?.map(order => {
+        // Cast tracking_info to the correct type
+        const trackingInfo = order.tracking_info as unknown as TrackingInfo;
+        
+        return {
+          id: order.id,
+          date: order.order_date,
+          products: order.order_items.map((item: any) => ({
+            id: item.product_id,
+            name: item.product_name,
+            quantity: item.quantity,
+            price: item.price,
+          })),
+          totalAmount: order.total_amount,
+          status: order.status as 'processing' | 'shipped' | 'delivered' | 'cancelled',
+          paymentMethod: order.payment_method,
+          deliveryAddress: order.delivery_address,
+          phoneNumber: profileData?.phone_number || '',
+          trackingDetails: trackingInfo ? {
+            currentStatus: trackingInfo.currentStatus,
+            estimatedDelivery: trackingInfo.estimatedDelivery,
+            lastUpdated: trackingInfo.lastUpdated,
+            location: trackingInfo.location,
+          } : undefined,
+        };
+      }) || [];
 
       // Parse preferences
-      const preferences = profileData?.preferences || { darkMode: false, notifications: true, emailUpdates: false };
+      const preferences = profileData?.preferences as unknown as UserPreferences || 
+        { darkMode: false, notifications: true, emailUpdates: false };
 
       // Create user object
       const userProfile: UserProfile = {
