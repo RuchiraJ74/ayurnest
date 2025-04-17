@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
-import { ArrowLeft, Leaf, User, Mail, Lock } from 'lucide-react';
+import { ArrowLeft, Leaf, User, Mail, Lock, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export const SignupForm: React.FC = () => {
@@ -155,16 +156,46 @@ export const LoginForm: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Check for redirect params (e.g., after password reset)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const message = params.get('message');
+    if (message) {
+      toast.success("Success", { description: message });
+    }
+  }, [location]);
+
+  const validateForm = (): boolean => {
+    setValidationError(null);
+    
+    if (!email) {
+      setValidationError("Email is required");
+      return false;
+    }
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setValidationError("Please enter a valid email address");
+      return false;
+    }
+    
+    if (!password) {
+      setValidationError("Password is required");
+      return false;
+    }
+    
+    return true;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password) {
-      toast("Missing information", {
-        description: "Please enter both email and password."
-      });
+    if (!validateForm()) {
       return;
     }
     
@@ -172,10 +203,12 @@ export const LoginForm: React.FC = () => {
     
     try {
       await login(email, password);
+      toast.success("Welcome back!");
       navigate('/home');
     } catch (error) {
-      toast("Login failed", {
-        description: error instanceof Error ? error.message : "Invalid credentials"
+      console.error("Login error:", error);
+      toast.error("Login failed", {
+        description: error instanceof Error ? error.message : "Invalid credentials. Please try again."
       });
     } finally {
       setIsLoading(false);
@@ -185,15 +218,16 @@ export const LoginForm: React.FC = () => {
   const handleDemoLogin = async () => {
     setIsLoading(true);
     try {
+      // Using demo credentials
       await login('demo@example.com', 'password123');
       toast.success("Demo login successful", {
-        description: "You've logged in with the demo account."
+        description: "You've logged in with the demo account. Explore freely!"
       });
       navigate('/home');
     } catch (error) {
       console.error("Demo login error:", error);
       toast.error("Demo login failed", {
-        description: "Something went wrong with the demo login. Please try again."
+        description: "The demo account is currently unavailable. Please try signing up instead."
       });
     } finally {
       setIsLoading(false);
@@ -225,6 +259,13 @@ export const LoginForm: React.FC = () => {
         </div>
         
         <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-lg p-8 w-full space-y-5">
+          {validationError && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start">
+              <AlertCircle size={18} className="mr-2 mt-0.5 flex-shrink-0" />
+              <span>{validationError}</span>
+            </div>
+          )}
+          
           <div className="space-y-2">
             <label htmlFor="email" className="text-sm font-medium text-gray-700 flex items-center">
               <Mail size={16} className="mr-2 text-ayur-primary" />
@@ -234,7 +275,10 @@ export const LoginForm: React.FC = () => {
               id="email"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setValidationError(null);
+              }}
               className="w-full p-3 rounded-lg border-gray-300 focus:border-ayur-primary focus:ring-ayur-primary"
               placeholder="Your email"
             />
@@ -254,7 +298,10 @@ export const LoginForm: React.FC = () => {
               id="password"
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setValidationError(null);
+              }}
               className="w-full p-3 rounded-lg border-gray-300 focus:border-ayur-primary focus:ring-ayur-primary"
               placeholder="Your password"
             />

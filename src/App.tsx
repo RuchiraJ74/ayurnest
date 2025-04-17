@@ -1,9 +1,10 @@
+
 import { useState, useEffect } from "react";
 import { Toaster as ShadcnToaster } from "@/components/ui/toaster";
 import { Toaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 
 // Context Providers
@@ -34,11 +35,27 @@ import ResetPasswordForm from "@/components/ResetPasswordForm";
 // Auth protection wrapper
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const location = useLocation();
   
   useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        setIsAuthenticated(!!data.session);
+      } catch (error) {
+        console.error("Auth check error:", error);
+        setIsAuthenticated(false);
+      }
+    };
+    
+    checkAuth();
+    
+    // Check for auth in localStorage as fallback
     const user = localStorage.getItem('ayurnest_user');
-    setIsAuthenticated(!!user);
-  }, []);
+    if (user && isAuthenticated === null) {
+      setIsAuthenticated(true);
+    }
+  }, [location.pathname]);
   
   if (isAuthenticated === null) {
     // Still checking authentication
@@ -50,9 +67,12 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return isAuthenticated ? (
     <>{children}</>
   ) : (
-    <Navigate to="/" replace />
+    <Navigate to="/login" state={{ from: location }} replace />
   );
 };
+
+// Import Supabase client for auth check
+import { supabase } from "@/integrations/supabase/client";
 
 const queryClient = new QueryClient({
   defaultOptions: {

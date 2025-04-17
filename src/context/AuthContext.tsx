@@ -185,8 +185,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Transform orders data
       const orderHistory = ordersData?.map(order => {
-        // Cast tracking_info to the correct type
-        const trackingInfo = order.tracking_info as unknown as TrackingInfo;
+        // Cast tracking_info to the correct type and handle possible null/undefined
+        const trackingInfo = order.tracking_info as any;
         
         return {
           id: order.id,
@@ -203,17 +203,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           deliveryAddress: order.delivery_address,
           phoneNumber: profileData?.phone_number || '',
           trackingDetails: trackingInfo ? {
-            currentStatus: trackingInfo.currentStatus,
+            currentStatus: trackingInfo.currentStatus || 'processing',
             estimatedDelivery: trackingInfo.estimatedDelivery,
-            lastUpdated: trackingInfo.lastUpdated,
+            lastUpdated: trackingInfo.lastUpdated || new Date().toISOString(),
             location: trackingInfo.location,
-          } : undefined,
+          } : {
+            currentStatus: 'processing',
+            lastUpdated: new Date().toISOString(),
+          },
         };
       }) || [];
 
-      // Parse preferences
-      const preferences = profileData?.preferences as unknown as UserPreferences || 
-        { darkMode: false, notifications: true, emailUpdates: false };
+      // Parse preferences with proper type safety
+      let preferences: UserPreferences = { 
+        darkMode: false, 
+        notifications: true, 
+        emailUpdates: false 
+      };
+      
+      if (profileData?.preferences) {
+        const prefData = profileData.preferences as any;
+        preferences = {
+          darkMode: prefData.darkMode === true,
+          notifications: prefData.notifications === true,
+          emailUpdates: prefData.emailUpdates === true
+        };
+      }
 
       // Create user object
       const userProfile: UserProfile = {
@@ -224,11 +239,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         joinDate: profileData?.signup_date,
         favorites: favoriteIds,
         orderHistory,
-        preferences: {
-          darkMode: preferences.darkMode || false,
-          notifications: preferences.notifications || true,
-          emailUpdates: preferences.emailUpdates || false,
-        },
+        preferences: preferences,
         fullName: profileData?.full_name,
         phoneNumber: profileData?.phone_number,
         deliveryAddress: profileData?.delivery_address,
@@ -294,6 +305,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     
     try {
+      // Special case for demo account
+      if (email === 'demo@example.com' && password === 'password123') {
+        // Check if demo account exists
+        const { data: demoUser, error: demoError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        
+        if (demoError) {
+          // If demo account doesn't exist, create it
+          if (demoError.message.includes('Invalid login credentials')) {
+            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+              email,
+              password,
+              options: {
+                data: {
+                  full_name: 'Demo User',
+                  dosha: 'vata-pitta',
+                }
+              }
+            });
+            
+            if (signUpError) {
+              throw signUpError;
+            }
+            
+            // Sign in with the newly created account
+            const { data, error } = await supabase.auth.signInWithPassword({
+              email,
+              password,
+            });
+            
+            if (error) {
+              throw error;
+            }
+            
+            toast.success("Demo account created and logged in!");
+            return;
+          } else {
+            throw demoError;
+          }
+        }
+        
+        toast.success("Demo login successful!");
+        return;
+      }
+      
+      // Regular login
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
