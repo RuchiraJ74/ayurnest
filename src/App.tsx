@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Toaster as ShadcnToaster } from "@/components/ui/toaster";
 import { Toaster } from "sonner";
@@ -30,6 +29,7 @@ import CheckoutPage from "@/pages/CheckoutPage";
 import OrderTrackingPage from "@/pages/OrderTrackingPage";
 import ProfilePage from "@/pages/ProfilePage";
 import NotFound from "@/pages/NotFound";
+import ResetPasswordForm from "@/components/ResetPasswordForm";
 
 // Auth protection wrapper
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -78,6 +78,7 @@ const App = () => (
                 <Route path="/signup" element={<SignupForm />} />
                 <Route path="/login" element={<LoginForm />} />
                 <Route path="/forgot-password" element={<ForgotPasswordForm />} />
+                <Route path="/reset-password" element={<ResetPasswordForm />} />
                 <Route path="/dosha-test" element={<DoshaTest />} />
                 <Route path="/dosha-result" element={<DoshaResult />} />
                 

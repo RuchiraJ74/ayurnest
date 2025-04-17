@@ -186,13 +186,14 @@ export const LoginForm: React.FC = () => {
     setIsLoading(true);
     try {
       await login('demo@example.com', 'password123');
-      toast("Demo account", {
+      toast.success("Demo login successful", {
         description: "You've logged in with the demo account."
       });
       navigate('/home');
     } catch (error) {
-      toast("Demo login failed", {
-        description: "Something went wrong with the demo login."
+      console.error("Demo login error:", error);
+      toast.error("Demo login failed", {
+        description: "Something went wrong with the demo login. Please try again."
       });
     } finally {
       setIsLoading(false);

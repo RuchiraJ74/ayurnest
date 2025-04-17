@@ -1,19 +1,39 @@
 
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
-import { ArrowLeft, Mail, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Mail, RefreshCw, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { supabase } from "@/integrations/supabase/client";
+
+// Get the app URL for redirects (fallback to localhost only in development)
+const APP_URL = window.location.origin;
 
 const ForgotPasswordForm: React.FC = () => {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isLinkExpired, setIsLinkExpired] = useState(false);
   const { resetPassword } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Check for error parameters in URL (for expired or invalid links)
+  useEffect(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const error = queryParams.get('error');
+    const errorDescription = queryParams.get('error_description');
+    
+    if (error) {
+      setIsLinkExpired(true);
+      toast.error("Link Error", {
+        description: errorDescription || "Your password reset link is invalid or has expired."
+      });
+    }
+  }, [location]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,7 +48,10 @@ const ForgotPasswordForm: React.FC = () => {
     setIsLoading(true);
     
     try {
-      await resetPassword(email);
+      // Provide the correct redirect URL for password reset
+      await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${APP_URL}/reset-password`,
+      });
       setIsSubmitted(true);
       toast.success("Reset link sent to your email");
     } catch (error) {
@@ -54,19 +77,49 @@ const ForgotPasswordForm: React.FC = () => {
       >
         <div className="text-center mb-8">
           <div className="mx-auto bg-white w-20 h-20 rounded-full flex items-center justify-center mb-4 shadow-md">
-            <Mail size={32} className="text-ayur-primary" />
+            {isLinkExpired ? 
+              <AlertTriangle size={32} className="text-amber-500" /> : 
+              <Mail size={32} className="text-ayur-primary" />
+            }
           </div>
           <h1 className="text-3xl font-playfair font-bold text-ayur-secondary mb-1">
-            {isSubmitted ? "Check Your Email" : "Forgot Password"}
+            {isLinkExpired ? "Link Expired" : (isSubmitted ? "Check Your Email" : "Forgot Password")}
           </h1>
           <p className="text-gray-600">
-            {isSubmitted 
-              ? "We've sent you instructions to reset your password" 
-              : "Enter your email and we'll send you a reset link"}
+            {isLinkExpired 
+              ? "Your password reset link is invalid or has expired" 
+              : (isSubmitted 
+                ? "We've sent you instructions to reset your password" 
+                : "Enter your email and we'll send you a reset link")}
           </p>
         </div>
         
-        {isSubmitted ? (
+        {isLinkExpired ? (
+          <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-md text-center space-y-6">
+            <p className="text-gray-600">
+              Please request a new password reset link to continue.
+            </p>
+            <div className="space-y-3 pt-4">
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => {
+                  setIsLinkExpired(false);
+                  navigate('/forgot-password');
+                }}
+              >
+                <RefreshCw size={16} className="mr-2" /> Request New Link
+              </Button>
+              <Button 
+                variant="link" 
+                className="w-full text-ayur-primary"
+                onClick={() => navigate('/login')}
+              >
+                Back to Login
+              </Button>
+            </div>
+          </div>
+        ) : isSubmitted ? (
           <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-md text-center space-y-6">
             <p className="text-gray-600">
               A password reset link has been sent to <strong>{email}</strong>. 
