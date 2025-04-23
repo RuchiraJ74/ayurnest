@@ -1,54 +1,53 @@
-# Welcome to your Lovable project
 
 ## Project info
 
-**URL**: https://lovable.dev/projects/00dfb069-6b6e-42e9-9bc0-a14f9c5b59ec
+# AyurNest - Ayurvedic Wellness App 🌿
 
-## How can I edit this code?
+Welcome to the AyurNest project — a personalized Ayurvedic wellness app offering treatments, routines, diet plans, and real-time product tracking.
 
-There are several ways of editing your application.
+## 🌐 Live Preview
+Access the app locally at:  
+**http://192.168.1.5:8080/**
 
-**Use Lovable**
+---
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/00dfb069-6b6e-42e9-9bc0-a14f9c5b59ec) and start prompting.
+## ✏️ How Can I Edit This Code?
 
-Changes made via Lovable will be committed automatically to this repo.
+You can edit and manage this project in multiple ways depending on your setup and workflow preference:
 
-**Use your preferred IDE**
+### Steps:
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+```bash
+# 1. Clone the repository
+git clone <YOUR_GIT_REPOSITORY_URL>
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+# 2. Navigate into the project directory
+cd <YOUR_PROJECT_FOLDER_NAME>
 
-Follow these steps:
+# 3. Install dependencies
+npm install
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# 4. Start the development server
 npm run dev
-```
 
-**Edit a file directly in GitHub**
+!
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+🌐 Option 2: Edit Directly on GitHub
+Navigate to the file you want to change in the GitHub repository.
 
-**Use GitHub Codespaces**
+Click the Edit (✏️ pencil) icon.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Make your changes.
+
+Scroll down, write a commit message, and click Commit Changes.
+
+💻 Option 3: Use GitHub Codespaces
+Open the GitHub repo.
+
+Click the Code button and select Codespaces > Create codespace on main.
+
+Edit directly in the browser and push changes instantly.
+
 
 ## What technologies are used for this project?
 
@@ -59,15 +58,12 @@ This project is built with:
 - React
 - shadcn-ui
 - Tailwind CSS
+- Supabase (for backend and database)
+- Google Maps API (for real-time order tracking)
 
 ## How can I deploy this project?
 
-Simply open [Lovable](https://lovable.dev/projects/00dfb069-6b6e-42e9-9bc0-a14f9c5b59ec) and click on Share -> Publish.
+To deploy, use any static site host (like Vercel, Netlify, or custom server). Make sure backend services (like Supabase or APIs) are correctly configured for production.
 
-## Can I connect a custom domain to my Lovable project?
-
-Yes it is!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+🔒 Custom Domain
+You can attach your own domain (like ayurnest.in) using your hosting provider’s DNS settings.
