@@ -18,6 +18,7 @@ interface UserProfile {
   email?: string;
   signup_date?: string;
   delivery_address?: string;
+  avatar?: string;  // Added avatar property to the interface
 }
 
 const ProfilePage = () => {

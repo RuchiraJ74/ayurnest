@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -18,6 +17,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
+import MapTracker from '@/components/MapTracker';
 
 interface OrderItem {
   id: string;
