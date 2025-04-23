@@ -165,6 +165,7 @@ export type Database = {
           created_at: string | null
           delivery_address: string
           id: string
+          location_data: Json | null
           order_date: string | null
           payment_method: string
           status: string
@@ -177,6 +178,7 @@ export type Database = {
           created_at?: string | null
           delivery_address: string
           id?: string
+          location_data?: Json | null
           order_date?: string | null
           payment_method: string
           status?: string
@@ -189,6 +191,7 @@ export type Database = {
           created_at?: string | null
           delivery_address?: string
           id?: string
+          location_data?: Json | null
           order_date?: string | null
           payment_method?: string
           status?: string
@@ -247,6 +250,7 @@ export type Database = {
         Row: {
           created_at: string | null
           delivery_address: string | null
+          email: string | null
           full_name: string | null
           id: string
           phone_number: string | null
@@ -257,6 +261,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           delivery_address?: string | null
+          email?: string | null
           full_name?: string | null
           id: string
           phone_number?: string | null
@@ -267,6 +272,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           delivery_address?: string | null
+          email?: string | null
           full_name?: string | null
           id?: string
           phone_number?: string | null

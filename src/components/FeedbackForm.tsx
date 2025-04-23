@@ -1,11 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import { Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { supabase } from '@/integrations/supabase/client';
 
 type FeedbackFormProps = {
   onSubmit?: () => void;
@@ -15,10 +16,38 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit }) => {
   const [rating, setRating] = useState(0);
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { addFeedback, user } = useAuth();
+  const { user } = useAuth();
   const [submittedFeedback, setSubmittedFeedback] = useState<any[]>([]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    // Fetch existing feedback if user is logged in
+    const fetchFeedback = async () => {
+      if (user) {
+        try {
+          const { data: session } = await supabase.auth.getSession();
+          if (session?.session?.user) {
+            const { data, error } = await supabase
+              .from('feedback')
+              .select('*')
+              .eq('user_id', session.session.user.id)
+              .order('created_at', { ascending: false });
+              
+            if (error) {
+              console.error("Error fetching feedback:", error);
+            } else if (data) {
+              setSubmittedFeedback(data);
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching feedback:", error);
+        }
+      }
+    };
+    
+    fetchFeedback();
+  }, [user]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!user) {
@@ -37,26 +66,63 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit }) => {
     
     setIsSubmitting(true);
     
+    const feedbackData = {
+      rating,
+      message: message.trim() || "Great experience!",
+      username: user.username || user.email,
+      user_id: user.id
+    };
+    
     try {
-      const feedback = addFeedback({
-        rating,
-        message: message.trim() || "Great experience!"
-      });
+      // Try to save to Supabase
+      const { data: session } = await supabase.auth.getSession();
       
-      if (feedback) {
-        setSubmittedFeedback(prev => [...prev, feedback]);
-        setRating(0);
-        setMessage('');
-        
-        if (onSubmit) {
-          onSubmit();
+      if (session?.session?.user) {
+        const { data, error } = await supabase
+          .from('feedback')
+          .insert({
+            rating: feedbackData.rating,
+            message: feedbackData.message,
+            username: feedbackData.username,
+            user_id: session.session.user.id
+          })
+          .select('*, profiles:user_id(full_name, email)')
+          .single();
+          
+        if (error) {
+          console.error("Error saving feedback:", error);
+          throw error;
         }
-
-        toast("Feedback submitted", {
-          description: "Thank you for your feedback!"
-        });
+        
+        // Add date field for consistency with local format
+        const savedFeedback = { 
+          ...data, 
+          date: data.created_at 
+        };
+        setSubmittedFeedback(prev => [savedFeedback, ...prev]);
+      } else {
+        // Fallback for non-logged in users (although we check above)
+        const newFeedback = {
+          ...feedbackData,
+          id: `local-${Date.now()}`,
+          date: new Date().toISOString(),
+          created_at: new Date().toISOString()
+        };
+        setSubmittedFeedback(prev => [newFeedback, ...prev]);
       }
+      
+      setRating(0);
+      setMessage('');
+      
+      if (onSubmit) {
+        onSubmit();
+      }
+
+      toast("Feedback submitted", {
+        description: "Thank you for your feedback!"
+      });
     } catch (error) {
+      console.error("Error submitting feedback:", error);
       toast("Submission failed", {
         description: "Failed to submit feedback"
       });
@@ -120,10 +186,16 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit }) => {
           >
             <h3 className="font-medium text-ayur-secondary mb-3">Your Recent Feedback</h3>
             {submittedFeedback.map((feedback, index) => (
-              <div key={index} className="bg-white rounded-lg shadow-sm p-4 mb-3">
+              <div key={feedback.id} className="bg-white rounded-lg shadow-sm p-4 mb-3">
                 <div className="flex justify-between items-start">
                   <div>
-                    <p className="font-medium">{user?.username || "User"}</p>
+                    <p className="font-medium">
+                      {/* Try to get full_name from profiles if available */}
+                      {feedback.profiles?.full_name || 
+                       feedback.profiles?.email || 
+                       feedback.username || 
+                       "User"}
+                    </p>
                     <div className="flex mt-1 mb-2">
                       {[...Array(5)].map((_, i) => (
                         <Star
@@ -135,7 +207,7 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit }) => {
                     </div>
                   </div>
                   <span className="text-xs text-gray-500">
-                    {new Date(feedback.date).toLocaleDateString()}
+                    {new Date(feedback.created_at || feedback.date).toLocaleDateString()}
                   </span>
                 </div>
                 <p className="text-sm text-gray-600">{feedback.message}</p>

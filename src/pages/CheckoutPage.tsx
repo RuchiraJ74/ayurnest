@@ -4,14 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { ArrowLeft, CreditCard, Banknote, Smartphone, Info, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Banknote, Smartphone, Info, CheckCircle } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
+import { supabase } from '@/integrations/supabase/client';
 
-type PaymentMethod = 'card' | 'upi' | 'cod';
+type PaymentMethod = 'upi' | 'cod';
 type CheckoutStep = 'address' | 'payment' | 'review' | 'confirmation';
 
 interface Address {
@@ -35,10 +35,7 @@ const CheckoutPage: React.FC = () => {
     state: '',
     pincode: ''
   });
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
-  const [cardNumber, setCardNumber] = useState('');
-  const [cardExpiry, setCardExpiry] = useState('');
-  const [cardCvv, setCardCvv] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('upi');
   const [upiId, setUpiId] = useState('');
   const [orderId, setOrderId] = useState('');
   const [loading, setLoading] = useState(false);
@@ -88,43 +85,7 @@ const CheckoutPage: React.FC = () => {
   };
   
   const validatePayment = () => {
-    if (paymentMethod === 'card') {
-      if (!cardNumber || !cardExpiry || !cardCvv) {
-        toast({
-          title: "Missing card information",
-          description: "Please enter all card details.",
-          variant: "destructive"
-        });
-        return false;
-      }
-      
-      if (!/^\d{16}$/.test(cardNumber.replace(/\s/g, ''))) {
-        toast({
-          title: "Invalid card number",
-          description: "Please enter a valid 16-digit card number.",
-          variant: "destructive"
-        });
-        return false;
-      }
-      
-      if (!/^\d{2}\/\d{2}$/.test(cardExpiry)) {
-        toast({
-          title: "Invalid expiry date",
-          description: "Please enter a valid expiry date (MM/YY).",
-          variant: "destructive"
-        });
-        return false;
-      }
-      
-      if (!/^\d{3}$/.test(cardCvv)) {
-        toast({
-          title: "Invalid CVV",
-          description: "Please enter a valid 3-digit CVV.",
-          variant: "destructive"
-        });
-        return false;
-      }
-    } else if (paymentMethod === 'upi') {
+    if (paymentMethod === 'upi') {
       if (!upiId) {
         toast({
           title: "Missing UPI ID",
@@ -171,17 +132,59 @@ const CheckoutPage: React.FC = () => {
     }
   };
   
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     setLoading(true);
     
     const newOrderId = 'AYR-' + Math.floor(10000 + Math.random() * 90000);
     setOrderId(newOrderId);
     
-    setTimeout(() => {
-      clearCart();
-      setCurrentStep('confirmation');
-      setLoading(false);
+    const locationData = {
+      latitude: 28.6139 + (Math.random() - 0.5) * 0.1,
+      longitude: 77.2090 + (Math.random() - 0.5) * 0.1,
+      last_updated: new Date().toISOString()
+    };
+    
+    try {
+      const { data: session } = await supabase.auth.getSession();
       
+      if (session?.session?.user?.id) {
+        const { data: orderData, error: orderError } = await supabase
+          .from('orders')
+          .insert({
+            id: newOrderId,
+            user_id: session.session.user.id,
+            total_amount: (totalPrice + 5.99 + totalPrice * 0.07),
+            status: 'processing',
+            delivery_address: `${address.fullName}, ${address.addressLine1}, ${address.addressLine2}, ${address.city}, ${address.state}, ${address.pincode}`,
+            payment_method: paymentMethod,
+            location_data: locationData
+          })
+          .select()
+          .single();
+          
+        if (orderError) {
+          console.error('Error creating order:', orderError);
+        } else {
+          const orderItems = items.map(item => ({
+            order_id: newOrderId,
+            product_id: item.product.id,
+            product_name: item.product.name,
+            quantity: item.quantity,
+            price: item.product.price
+          }));
+          
+          const { error: itemsError } = await supabase
+            .from('order_items')
+            .insert(orderItems);
+            
+          if (itemsError) {
+            console.error('Error creating order items:', itemsError);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error in order creation:', error);
+    } finally {
       const order = {
         id: newOrderId,
         items: items.map(item => ({
@@ -199,45 +202,25 @@ const CheckoutPage: React.FC = () => {
         paymentMethod: paymentMethod,
         status: 'processing',
         createdAt: new Date().toISOString(),
-        estimatedDelivery: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString()
+        estimatedDelivery: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+        locationData: locationData
       };
       
       const existingOrders = JSON.parse(localStorage.getItem('ayurnest_orders') || '[]');
       localStorage.setItem('ayurnest_orders', JSON.stringify([order, ...existingOrders]));
-    }, 2000);
-  };
-  
-  const formatCardNumber = (value: string) => {
-    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
-    const matches = v.match(/\d{4,16}/g);
-    const match = matches && matches[0] || '';
-    const parts = [];
-
-    for (let i = 0; i < match.length; i += 4) {
-      parts.push(match.substring(i, i + 4));
+      
+      setTimeout(() => {
+        clearCart();
+        setCurrentStep('confirmation');
+        setLoading(false);
+        
+        toast({
+          title: "Order Placed Successfully!",
+          description: `Your order #${newOrderId} has been confirmed.`,
+          variant: "default"
+        });
+      }, 2000);
     }
-
-    if (parts.length) {
-      return parts.join(' ');
-    } else {
-      return value;
-    }
-  };
-  
-  const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatCardNumber(e.target.value);
-    setCardNumber(formatted);
-  };
-  
-  const handleCardExpiryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value;
-    value = value.replace(/\D/g, '');
-    
-    if (value.length > 2) {
-      value = value.slice(0, 2) + '/' + value.slice(2, 4);
-    }
-    
-    setCardExpiry(value);
   };
   
   const renderAddressForm = () => (
@@ -327,56 +310,6 @@ const CheckoutPage: React.FC = () => {
       
       <RadioGroup value={paymentMethod} onValueChange={(value) => setPaymentMethod(value as PaymentMethod)}>
         <div className="space-y-4">
-          <div className={`border rounded-lg p-4 ${paymentMethod === 'card' ? 'border-ayur-primary bg-ayur-light/10' : 'border-gray-200'}`}>
-            <div className="flex items-start">
-              <RadioGroupItem value="card" id="card" className="mt-1" />
-              <div className="ml-3 flex-1">
-                <Label htmlFor="card" className="font-medium flex items-center">
-                  <CreditCard className="mr-2 h-5 w-5" /> Credit/Debit Card
-                </Label>
-                
-                {paymentMethod === 'card' && (
-                  <div className="mt-4 space-y-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="cardNumber">Card Number</Label>
-                      <Input
-                        id="cardNumber"
-                        placeholder="1234 5678 9012 3456"
-                        value={cardNumber}
-                        onChange={handleCardNumberChange}
-                        maxLength={19}
-                      />
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="cardExpiry">Expiry Date</Label>
-                        <Input
-                          id="cardExpiry"
-                          placeholder="MM/YY"
-                          value={cardExpiry}
-                          onChange={handleCardExpiryChange}
-                          maxLength={5}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="cardCvv">CVV</Label>
-                        <Input
-                          id="cardCvv"
-                          placeholder="123"
-                          value={cardCvv}
-                          onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, '').slice(0, 3))}
-                          maxLength={3}
-                          type="password"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-          
           <div className={`border rounded-lg p-4 ${paymentMethod === 'upi' ? 'border-ayur-primary bg-ayur-light/10' : 'border-gray-200'}`}>
             <div className="flex items-start">
               <RadioGroupItem value="upi" id="upi" className="mt-1" />
@@ -395,6 +328,23 @@ const CheckoutPage: React.FC = () => {
                         value={upiId}
                         onChange={(e) => setUpiId(e.target.value)}
                       />
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="flex items-center justify-center bg-gray-100 rounded-md p-2 cursor-pointer hover:bg-gray-200 transition-colors" onClick={() => setUpiId(`${upiId.split('@')[0] || ''}@paytm`)}>
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/2/24/Paytm_Logo_%282020%29.svg" alt="Paytm" className="h-5" />
+                      </div>
+                      <div className="flex items-center justify-center bg-gray-100 rounded-md p-2 cursor-pointer hover:bg-gray-200 transition-colors" onClick={() => setUpiId(`${upiId.split('@')[0] || ''}@okicici`)}>
+                        <span className="text-sm font-semibold">GPay</span>
+                      </div>
+                      <div className="flex items-center justify-center bg-gray-100 rounded-md p-2 cursor-pointer hover:bg-gray-200 transition-colors" onClick={() => setUpiId(`${upiId.split('@')[0] || ''}@ybl`)}>
+                        <span className="text-sm font-semibold">PhonePe</span>
+                      </div>
+                    </div>
+                    
+                    <div className="p-3 bg-blue-50 rounded-md flex items-center space-x-2 text-sm text-blue-700">
+                      <Info size={16} />
+                      <span>You will receive a payment request on your UPI app</span>
                     </div>
                   </div>
                 )}
@@ -494,19 +444,14 @@ const CheckoutPage: React.FC = () => {
       <Card className="p-6">
         <h2 className="text-xl font-medium mb-4">Payment Method</h2>
         <div className="flex items-center">
-          {paymentMethod === 'card' && <CreditCard className="mr-2 h-5 w-5" />}
           {paymentMethod === 'upi' && <Smartphone className="mr-2 h-5 w-5" />}
           {paymentMethod === 'cod' && <Banknote className="mr-2 h-5 w-5" />}
           
           <span>
-            {paymentMethod === 'card' && 'Credit/Debit Card'}
             {paymentMethod === 'upi' && 'UPI Payment'}
             {paymentMethod === 'cod' && 'Cash on Delivery'}
           </span>
         </div>
-        {paymentMethod === 'card' && (
-          <p className="mt-1 text-sm">Card ending with {cardNumber.slice(-4)}</p>
-        )}
         {paymentMethod === 'upi' && (
           <p className="mt-1 text-sm">UPI ID: {upiId}</p>
         )}
@@ -554,9 +499,7 @@ const CheckoutPage: React.FC = () => {
           <div className="flex justify-between">
             <span className="text-gray-600">Payment Method:</span>
             <span className="font-medium">
-              {paymentMethod === 'card' && 'Credit/Debit Card'}
-              {paymentMethod === 'upi' && 'UPI Payment'}
-              {paymentMethod === 'cod' && 'Cash on Delivery'}
+              {paymentMethod === 'upi' ? 'UPI Payment' : 'Cash on Delivery'}
             </span>
           </div>
           

@@ -2,8 +2,9 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Circle, Truck, Package, Home, Clock } from 'lucide-react';
+import { CheckCircle, Circle, Truck, Package, Home, Clock, MapPin } from 'lucide-react';
 import { motion } from 'framer-motion';
+import MapTracker from './MapTracker';
 
 type OrderTrackingProps = {
   orderId: string;
@@ -11,6 +12,7 @@ type OrderTrackingProps = {
   estimatedDelivery?: string;
   lastUpdated: string;
   currentLocation?: string;
+  locationData?: { latitude: number | null; longitude: number | null; last_updated: string | null };
 };
 
 const OrderTracking: React.FC<OrderTrackingProps> = ({
@@ -18,7 +20,8 @@ const OrderTracking: React.FC<OrderTrackingProps> = ({
   status,
   estimatedDelivery,
   lastUpdated,
-  currentLocation
+  currentLocation,
+  locationData
 }) => {
   const navigate = useNavigate();
   
@@ -76,6 +79,17 @@ const OrderTracking: React.FC<OrderTrackingProps> = ({
         )}
       </div>
       
+      {locationData && locationData.latitude && locationData.longitude && (
+        <div className="mb-6 rounded-lg overflow-hidden h-48">
+          <MapTracker 
+            latitude={locationData.latitude} 
+            longitude={locationData.longitude} 
+            orderId={orderId}
+            status={status}
+          />
+        </div>
+      )}
+      
       {status === 'cancelled' ? (
         <div className="bg-red-50 p-4 rounded-lg mb-4">
           <p className="text-sm text-red-800">
@@ -117,7 +131,9 @@ const OrderTracking: React.FC<OrderTrackingProps> = ({
                   {isActive && currentLocation && index === 1 && (
                     <div className="mt-2 bg-blue-50 p-2 rounded text-xs">
                       <p className="font-medium text-blue-800">Current Location:</p>
-                      <p className="text-blue-700">{currentLocation}</p>
+                      <p className="text-blue-700 flex items-center">
+                        <MapPin size={12} className="mr-1" /> {currentLocation}
+                      </p>
                     </div>
                   )}
                 </div>

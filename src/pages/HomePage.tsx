@@ -1,307 +1,172 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingBag, Calendar, Heart, Activity, Search, Bell } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { doshaProfiles } from '@/data/doshaData';
-import { getRoutineByDosha } from '@/data/routineData';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
+import { Search, ArrowRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { supabase } from '@/integrations/supabase/client';
 
-const HomePage: React.FC = () => {
+const HomePage = () => {
+  const [searchQuery, setSearchQuery] = useState('');
   const { user } = useAuth();
+  const [profile, setProfile] = useState<any>(null);
   const navigate = useNavigate();
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
   
-  const dosha = user?.dosha || 'tridosha';
-  const doshaProfile = doshaProfiles[dosha as keyof typeof doshaProfiles];
-  const routine = getRoutineByDosha(dosha);
-  
-  // Get current time to show relevant routine activities
-  const now = new Date();
-  const currentHour = now.getHours();
-  let timeOfDay: 'morning' | 'afternoon' | 'evening' = 'morning';
-  
-  if (currentHour >= 12 && currentHour < 17) {
-    timeOfDay = 'afternoon';
-  } else if (currentHour >= 17) {
-    timeOfDay = 'evening';
-  }
-  
-  const currentRoutine = routine[timeOfDay];
-  
-  // Mock notifications
-  const notifications = [
-    {
-      id: '1',
-      title: 'New Ayurvedic Recipe',
-      description: 'Check out our new seasonal Ayurvedic recipe for boosting immunity!',
-      date: '2023-04-15',
-      read: false
-    },
-    {
-      id: '2',
-      title: 'Order Shipped',
-      description: 'Your order #AYR-3842 has been shipped and will arrive in 2-3 days.',
-      date: '2023-04-12',
-      read: true
-    },
-    {
-      id: '3',
-      title: 'Weekly Wellness Tip',
-      description: 'Morning oil pulling can help remove toxins and improve oral health.',
-      date: '2023-04-10',
-      read: true
-    }
-  ];
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (user) {
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+            
+          if (error) {
+            console.error("Error fetching profile:", error);
+          } else if (data) {
+            setProfile(data);
+          }
+        } catch (error) {
+          console.error("Error fetching profile:", error);
+        }
+      }
+    };
+    
+    fetchUserProfile();
+  }, [user]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    // Perform search action
-    if (searchTerm.trim()) {
-      // Navigate to shop page with search term
-      navigate(`/shop?search=${encodeURIComponent(searchTerm)}`);
-      setSearchOpen(false);
-      setSearchTerm('');
+    if (searchQuery.trim()) {
+      navigate(`/shop?search=${encodeURIComponent(searchQuery.trim())}`);
     }
   };
-  
+
+  const welcomeTime = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good Morning";
+    if (hour < 17) return "Good Afternoon";
+    return "Good Evening";
+  };
+
+  const getUserName = () => {
+    if (profile?.full_name) return profile.full_name.split(' ')[0];
+    if (user?.username) return user.username;
+    return "there";
+  };
+
   return (
-    <div className="pb-6">
-      {/* Header */}
-      <div className="bg-white shadow-sm p-4 flex justify-between items-center">
-        <div>
-          <h1 className="text-xl font-medium">AyurNest</h1>
-          <p className="text-sm text-gray-500">Personalized wellness</p>
-        </div>
-        <div className="flex gap-3">
-          <button 
-            className="p-2 rounded-full hover:bg-gray-100"
-            onClick={() => setSearchOpen(true)}
-          >
-            <Search size={20} />
-          </button>
-          <button 
-            className="p-2 rounded-full hover:bg-gray-100 relative"
-            onClick={() => setNotificationsOpen(true)}
-          >
-            <Bell size={20} />
-            {notifications.some(n => !n.read) && (
-              <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
-            )}
-          </button>
-        </div>
-      </div>
-      
-      {/* Search Dialog */}
-      <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Search AyurNest</DialogTitle>
-            <DialogDescription>
-              Find products, remedies, and wellness tips
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSearch} className="space-y-4 mt-4">
-            <div className="flex items-center space-x-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                <Input
-                  type="text"
-                  placeholder="What are you looking for?"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                  autoFocus
-                />
-              </div>
-              <Button type="submit">Search</Button>
-            </div>
-            <div className="pt-4">
-              <h4 className="text-sm font-medium mb-2">Quick Links</h4>
-              <div className="flex flex-wrap gap-2">
-                <Button variant="outline" size="sm" onClick={() => navigate('/shop')}>Shop</Button>
-                <Button variant="outline" size="sm" onClick={() => navigate('/remedies')}>Remedies</Button>
-                <Button variant="outline" size="sm" onClick={() => navigate('/daily-routine')}>Daily Routine</Button>
-                <Button variant="outline" size="sm" onClick={() => navigate('/diet')}>Diet</Button>
-              </div>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Notifications Dialog */}
-      <Dialog open={notificationsOpen} onOpenChange={setNotificationsOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Notifications</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 mt-2 max-h-[60vh] overflow-y-auto">
-            {notifications.map(notification => (
-              <div 
-                key={notification.id} 
-                className={`p-3 rounded-lg border ${!notification.read ? 'border-l-4 border-l-ayur-primary' : ''}`}
-              >
-                <h3 className="font-medium">{notification.title}</h3>
-                <p className="text-sm text-gray-600 mt-1">{notification.description}</p>
-                <p className="text-xs text-gray-400 mt-2">{notification.date}</p>
-              </div>
-            ))}
-          </div>
-          <div className="flex justify-end mt-2">
-            <Button onClick={() => navigate('/profile?tab=notifications')}>View All</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Welcome Section */}
+    <div className="max-w-md mx-auto p-4 pb-20">
       <motion.div 
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="p-4"
+        className="mb-6"
       >
-        <Card className="bg-gradient-to-r from-ayur-primary to-ayur-secondary p-5 text-white rounded-xl">
-          <h2 className="text-lg font-medium">Welcome back, {user?.username || 'Guest'}!</h2>
-          <p className="text-white/90 text-sm mb-3">
-            Your dosha type is: <span className="font-semibold">{dosha.toUpperCase()}</span>
-          </p>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="bg-white/20 text-white border-white/40 hover:bg-white/30 transition-colors"
-            onClick={() => navigate('/dosha-result')}
-          >
-            View Dosha Profile
-          </Button>
-        </Card>
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-lg text-gray-600">{welcomeTime()}</h2>
+            <h1 className="text-2xl font-bold text-ayur-secondary">{getUserName()}</h1>
+          </div>
+        </div>
       </motion.div>
-      
-      {/* Current Routine */}
+
       <motion.div 
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="p-4"
       >
-        <div className="flex justify-between items-center mb-3">
-          <h2 className="text-lg font-medium">Your {timeOfDay} routine</h2>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => navigate('/daily-routine')}
-            className="text-ayur-primary text-sm"
-          >
-            See all
-          </Button>
-        </div>
-        <Card className="rounded-xl overflow-hidden">
-          <div className="space-y-3 p-4">
-            {currentRoutine.slice(0, 3).map((item, index) => (
-              <div key={index} className="flex items-start gap-3">
-                <div className="bg-ayur-light rounded-full p-2 mt-1">
-                  <Calendar size={18} className="text-ayur-primary" />
-                </div>
-                <div>
-                  <div className="flex items-center">
-                    <span className="text-sm font-medium mr-2">{item.time}</span>
-                    <span className="text-sm text-gray-500">{item.activity}</span>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">{item.description}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
+        <form onSubmit={handleSearch} className="relative mb-8">
+          <Search 
+            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" 
+            size={18} 
+          />
+          <Input
+            type="text"
+            placeholder="Search remedies, herbs, products..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 bg-white border-gray-200"
+          />
+        </form>
       </motion.div>
-      
-      {/* Categories */}
+
       <motion.div 
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="p-4"
+        className="mb-8"
       >
-        <h2 className="text-lg font-medium mb-4">Explore Ayurvedic Wellness</h2>
-        <div className="grid grid-cols-2 gap-3">
-          <Card 
-            className="p-4 flex flex-col items-center text-center cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => navigate('/remedies')}
-          >
-            <div className="ayur-category-icon">
-              <Heart size={24} />
-            </div>
-            <h3 className="font-medium">Remedies</h3>
-            <p className="text-xs text-gray-500 mt-1">Natural healing solutions</p>
-          </Card>
+        <h2 className="text-xl font-medium mb-4 font-playfair">Your Wellness Journey</h2>
+        <Card className="bg-gradient-to-br from-ayur-primary to-ayur-secondary text-white p-6 overflow-hidden relative">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-x-5 -translate-y-10" />
+          <div className="absolute bottom-0 left-0 w-16 h-16 bg-white/10 rounded-full translate-x-3 translate-y-5" />
           
-          <Card 
-            className="p-4 flex flex-col items-center text-center cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => navigate('/shop')}
-          >
-            <div className="ayur-category-icon">
-              <ShoppingBag size={24} />
-            </div>
-            <h3 className="font-medium">Products</h3>
-            <p className="text-xs text-gray-500 mt-1">Ayurvedic essentials</p>
-          </Card>
-          
-          <Card 
-            className="p-4 flex flex-col items-center text-center cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => navigate('/daily-routine')}
-          >
-            <div className="ayur-category-icon">
-              <Calendar size={24} />
-            </div>
-            <h3 className="font-medium">Daily Routine</h3>
-            <p className="text-xs text-gray-500 mt-1">Customize your schedule</p>
-          </Card>
-          
-          <Card 
-            className="p-4 flex flex-col items-center text-center cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => navigate('/diet')}
-          >
-            <div className="ayur-category-icon">
-              <Activity size={24} />
-            </div>
-            <h3 className="font-medium">Diet Plan</h3>
-            <p className="text-xs text-gray-500 mt-1">Dosha-specific nutrition</p>
-          </Card>
-        </div>
-      </motion.div>
-      
-      {/* Recommendations */}
-      <motion.div 
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="p-4"
-      >
-        <h2 className="text-lg font-medium mb-3">Personalized for You</h2>
-        <Card className="rounded-xl p-4">
-          <h3 className="font-medium mb-2">Foods to favor for {dosha} balance:</h3>
-          <div className="grid grid-cols-2 gap-2 mb-4">
-            {doshaProfile.recommendedFoods.slice(0, 4).map((food, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-ayur-primary"></div>
-                <span className="text-sm">{food}</span>
-              </div>
-            ))}
-          </div>
+          <h3 className="text-lg font-medium mb-2">Discover Your Dosha</h3>
+          <p className="text-sm text-white/80 mb-4">Take our Dosha quiz to get personalized Ayurvedic recommendations</p>
           
           <Button 
             variant="outline" 
-            size="sm" 
-            className="border-ayur-primary text-ayur-primary hover:bg-ayur-light w-full"
-            onClick={() => navigate('/diet')}
+            className="bg-white text-ayur-secondary border-none hover:bg-white/90"
+            onClick={() => navigate('/dosha-test')}
           >
-            View Complete Diet Plan
+            Take Quiz <ArrowRight size={16} className="ml-2" />
           </Button>
         </Card>
+      </motion.div>
+      
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="space-y-6"
+      >
+        <h2 className="text-xl font-medium mb-4 font-playfair">Explore</h2>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <Card 
+            className="p-4 bg-gradient-to-br from-amber-50 to-amber-100 border-none hover:shadow-md transition-shadow cursor-pointer"
+            onClick={() => navigate('/daily-routine')}
+          >
+            <h3 className="font-medium mb-1">Daily Routines</h3>
+            <p className="text-xs text-gray-600">Harmonize your day with Ayurvedic practices</p>
+          </Card>
+          
+          <Card 
+            className="p-4 bg-gradient-to-br from-green-50 to-green-100 border-none hover:shadow-md transition-shadow cursor-pointer"
+            onClick={() => navigate('/diet')}
+          >
+            <h3 className="font-medium mb-1">Ayurvedic Diet</h3>
+            <p className="text-xs text-gray-600">Nourish your body with the right foods</p>
+          </Card>
+          
+          <Card 
+            className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 border-none hover:shadow-md transition-shadow cursor-pointer"
+            onClick={() => navigate('/remedies')}
+          >
+            <h3 className="font-medium mb-1">Natural Remedies</h3>
+            <p className="text-xs text-gray-600">Traditional solutions for common ailments</p>
+          </Card>
+          
+          <Card 
+            className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 border-none hover:shadow-md transition-shadow cursor-pointer"
+            onClick={() => navigate('/shop')}
+          >
+            <h3 className="font-medium mb-1">Herbal Shop</h3>
+            <p className="text-xs text-gray-600">Quality Ayurvedic products and herbs</p>
+          </Card>
+        </div>
+        
+        <Button 
+          variant="outline" 
+          className="w-full mt-4"
+          onClick={() => navigate('/profile')}
+        >
+          View Profile
+        </Button>
       </motion.div>
     </div>
   );

@@ -12,10 +12,12 @@ import {
   Check,
   Search,
   Package,
-  MessageSquare
+  MessageSquare,
+  MapPin
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
+import { supabase } from '@/integrations/supabase/client';
 
 interface OrderItem {
   id: string;
@@ -51,6 +53,11 @@ interface Order {
     location?: string;
     description: string;
   }[];
+  locationData?: {
+    latitude: number | null;
+    longitude: number | null;
+    last_updated: string | null;
+  };
 }
 
 const OrderTrackingPage: React.FC = () => {
@@ -61,82 +68,193 @@ const OrderTrackingPage: React.FC = () => {
   const navigate = useNavigate();
   
   useEffect(() => {
-    // Load orders from localStorage
-    const storedOrders = localStorage.getItem('ayurnest_orders');
-    if (storedOrders) {
-      const parsedOrders = JSON.parse(storedOrders);
-      
-      // Add tracking events to orders if they don't have them
-      const ordersWithTracking = parsedOrders.map((order: Order) => {
-        if (!order.trackingEvents) {
-          // Generate tracking events based on order status and dates
-          const events = [];
-          const orderDate = new Date(order.createdAt);
-          
-          // Order placed
-          events.push({
-            status: 'Order Placed',
-            timestamp: orderDate.toISOString(),
-            description: 'Your order has been received and is being processed.'
-          });
-          
-          // Order confirmed
-          const confirmDate = new Date(orderDate);
-          confirmDate.setHours(confirmDate.getHours() + 2);
-          events.push({
-            status: 'Order Confirmed',
-            timestamp: confirmDate.toISOString(),
-            description: 'Your order has been confirmed and is being prepared.'
-          });
-          
-          // Add shipping event if order is shipped or beyond
-          if (['shipped', 'outForDelivery', 'delivered'].includes(order.status)) {
-            const shipDate = new Date(orderDate);
-            shipDate.setHours(shipDate.getHours() + 24);
-            events.push({
-              status: 'Order Shipped',
-              timestamp: shipDate.toISOString(),
-              location: 'Ayurvedic Distribution Center',
-              description: 'Your order has been packaged and shipped.'
-            });
-          }
-          
-          // Add out for delivery event if applicable
-          if (['outForDelivery', 'delivered'].includes(order.status)) {
-            const deliveryDate = new Date(orderDate);
-            deliveryDate.setHours(deliveryDate.getHours() + 72);
-            events.push({
-              status: 'Out for Delivery',
-              timestamp: deliveryDate.toISOString(),
-              location: order.address.city,
-              description: 'Your order is out for delivery and will arrive today.'
-            });
-          }
-          
-          // Add delivered event if applicable
-          if (order.status === 'delivered') {
-            const completedDate = new Date(orderDate);
-            completedDate.setHours(completedDate.getHours() + 76);
-            events.push({
-              status: 'Delivered',
-              timestamp: completedDate.toISOString(),
-              location: order.address.city,
-              description: 'Your order has been delivered successfully.'
-            });
-          }
-          
-          return { ...order, trackingEvents: events };
+    // Attempt to fetch orders from Supabase if user is authenticated
+    const fetchOrdersFromDatabase = async () => {
+      const { data: session } = await supabase.auth.getSession();
+      if (session?.session?.user?.id) {
+        const { data: ordersData, error } = await supabase
+          .from('orders')
+          .select('*, order_items(*)')
+          .eq('user_id', session.session.user.id)
+          .order('order_date', { ascending: false });
+        
+        if (error) {
+          console.error('Error fetching orders:', error);
+          // Fall back to localStorage if DB fetch fails
+          loadOrdersFromLocalStorage();
+          return;
         }
-        return order;
+        
+        if (ordersData && ordersData.length > 0) {
+          const formattedOrders = ordersData.map(formatOrderFromDatabase);
+          setOrders(formattedOrders);
+          setSelectedOrder(formattedOrders[0]);
+          return;
+        }
+      }
+      
+      // If no orders in DB or user not authenticated, load from localStorage
+      loadOrdersFromLocalStorage();
+    };
+    
+    const formatOrderFromDatabase = (dbOrder: any): Order => {
+      // Format order from database structure to component structure
+      const items = dbOrder.order_items ? dbOrder.order_items.map((item: any) => ({
+        id: item.id,
+        name: item.product_name,
+        price: parseFloat(item.price),
+        quantity: item.quantity,
+        image: "https://via.placeholder.com/100?text=AyurProduct" // Placeholder image if not available
+      })) : [];
+      
+      const totalPrice = items.reduce((sum: number, item: OrderItem) => sum + (item.price * item.quantity), 0);
+      
+      // Extract tracking events from tracking_info if available
+      const trackingEvents = dbOrder.tracking_info?.events || generateTrackingEvents(dbOrder);
+      
+      return {
+        id: dbOrder.id,
+        items: items,
+        totalPrice: totalPrice,
+        shippingPrice: 5.99,
+        tax: totalPrice * 0.07,
+        grandTotal: totalPrice + 5.99 + (totalPrice * 0.07),
+        address: {
+          fullName: dbOrder.delivery_address?.split(',')[0] || 'Customer',
+          phoneNumber: '1234567890', // Placeholder
+          addressLine1: dbOrder.delivery_address?.split(',')[1] || 'Address line 1',
+          addressLine2: dbOrder.delivery_address?.split(',')[2] || '',
+          city: dbOrder.delivery_address?.split(',')[3] || 'City',
+          state: dbOrder.delivery_address?.split(',')[4] || 'State',
+          pincode: dbOrder.delivery_address?.split(',')[5] || 'Pincode',
+        },
+        paymentMethod: dbOrder.payment_method,
+        status: dbOrder.status,
+        createdAt: dbOrder.order_date,
+        estimatedDelivery: new Date(new Date(dbOrder.order_date).getTime() + 5*24*60*60*1000).toISOString(),
+        trackingEvents: trackingEvents,
+        locationData: dbOrder.location_data
+      };
+    };
+    
+    const loadOrdersFromLocalStorage = () => {
+      // Load orders from localStorage
+      const storedOrders = localStorage.getItem('ayurnest_orders');
+      if (storedOrders) {
+        const parsedOrders = JSON.parse(storedOrders);
+        
+        // Add tracking events to orders if they don't have them
+        const ordersWithTracking = parsedOrders.map((order: Order) => {
+          if (!order.trackingEvents) {
+            return {
+              ...order,
+              trackingEvents: generateTrackingEvents(order),
+              locationData: generateLocationData(order)
+            };
+          }
+          if (!order.locationData) {
+            return {
+              ...order,
+              locationData: generateLocationData(order)
+            };
+          }
+          return order;
+        });
+        
+        setOrders(ordersWithTracking);
+        
+        // If there's at least one order, select the first one
+        if (ordersWithTracking.length > 0) {
+          setSelectedOrder(ordersWithTracking[0]);
+        }
+      }
+    };
+    
+    const generateTrackingEvents = (order: any) => {
+      // Generate tracking events based on order status and dates
+      const events = [];
+      const orderDate = new Date(order.createdAt || order.order_date);
+      
+      // Order placed
+      events.push({
+        status: 'Order Placed',
+        timestamp: orderDate.toISOString(),
+        description: 'Your order has been received and is being processed.'
       });
       
-      setOrders(ordersWithTracking);
+      // Order confirmed
+      const confirmDate = new Date(orderDate);
+      confirmDate.setHours(confirmDate.getHours() + 2);
+      events.push({
+        status: 'Order Confirmed',
+        timestamp: confirmDate.toISOString(),
+        description: 'Your order has been confirmed and is being prepared.'
+      });
       
-      // If there's at least one order, select the first one
-      if (ordersWithTracking.length > 0) {
-        setSelectedOrder(ordersWithTracking[0]);
+      // Add shipping event if order is shipped or beyond
+      if (['shipped', 'outForDelivery', 'delivered'].includes(order.status)) {
+        const shipDate = new Date(orderDate);
+        shipDate.setHours(shipDate.getHours() + 24);
+        events.push({
+          status: 'Order Shipped',
+          timestamp: shipDate.toISOString(),
+          location: 'Ayurvedic Distribution Center',
+          description: 'Your order has been packaged and shipped.'
+        });
       }
-    }
+      
+      // Add out for delivery event if applicable
+      if (['outForDelivery', 'delivered'].includes(order.status)) {
+        const deliveryDate = new Date(orderDate);
+        deliveryDate.setHours(deliveryDate.getHours() + 72);
+        events.push({
+          status: 'Out for Delivery',
+          timestamp: deliveryDate.toISOString(),
+          location: order.address?.city || order.delivery_address?.split(',')[3] || 'Your City',
+          description: 'Your order is out for delivery and will arrive today.'
+        });
+      }
+      
+      // Add delivered event if applicable
+      if (order.status === 'delivered') {
+        const completedDate = new Date(orderDate);
+        completedDate.setHours(completedDate.getHours() + 76);
+        events.push({
+          status: 'Delivered',
+          timestamp: completedDate.toISOString(),
+          location: order.address?.city || order.delivery_address?.split(',')[3] || 'Your City',
+          description: 'Your order has been delivered successfully.'
+        });
+      }
+      
+      return events;
+    };
+    
+    const generateLocationData = (order: any) => {
+      // Generate fake location data for demonstration purposes
+      // In a real app, this would come from a tracking API
+      let lat = 28.6139;  // Default location - Delhi
+      let lng = 77.2090;
+      
+      // Adjust location based on order status
+      if (order.status === 'shipped') {
+        // Randomly shift location a bit to simulate movement
+        lat += (Math.random() - 0.5) * 0.2;
+        lng += (Math.random() - 0.5) * 0.2;
+      } else if (order.status === 'outForDelivery') {
+        // Move closer to delivery address
+        lat += (Math.random() - 0.5) * 0.05;
+        lng += (Math.random() - 0.5) * 0.05;
+      }
+      
+      return {
+        latitude: lat,
+        longitude: lng,
+        last_updated: new Date().toISOString()
+      };
+    };
+    
+    fetchOrdersFromDatabase();
   }, []);
   
   const handleSearchOrder = () => {
@@ -299,6 +417,25 @@ const OrderTrackingPage: React.FC = () => {
               </span>
             </div>
             
+            {/* Map display if location data is available */}
+            {selectedOrder.locationData?.latitude && selectedOrder.locationData.longitude && (
+              <div className="mb-4 rounded-lg overflow-hidden h-40">
+                <MapTracker
+                  latitude={selectedOrder.locationData.latitude}
+                  longitude={selectedOrder.locationData.longitude}
+                  orderId={selectedOrder.id}
+                  status={selectedOrder.status}
+                />
+                <div className="bg-gray-50 p-2 text-xs flex items-center">
+                  <MapPin size={12} className="mr-1 text-gray-500" />
+                  <span>Current location as of {selectedOrder.locationData.last_updated ? 
+                    formatDate(selectedOrder.locationData.last_updated) + ' ' + formatTime(selectedOrder.locationData.last_updated) : 
+                    'recently'}
+                  </span>
+                </div>
+              </div>
+            )}
+            
             <div className="mb-4">
               <div className="flex justify-between text-sm mb-1">
                 <span>Progress</span>
@@ -353,7 +490,9 @@ const OrderTrackingPage: React.FC = () => {
                     </div>
                     <p className="text-sm text-gray-600">{formatDate(event.timestamp)}</p>
                     {event.location && (
-                      <p className="text-sm text-gray-500 mt-1">{event.location}</p>
+                      <p className="text-sm text-gray-500 mt-1 flex items-center">
+                        <MapPin size={12} className="mr-1" /> {event.location}
+                      </p>
                     )}
                     <p className="text-sm mt-1">{event.description}</p>
                   </div>

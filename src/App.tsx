@@ -32,6 +32,9 @@ import ProfilePage from "@/pages/ProfilePage";
 import NotFound from "@/pages/NotFound";
 import ResetPasswordForm from "@/components/ResetPasswordForm";
 
+// Import Supabase client for auth check
+import { supabase } from "@/integrations/supabase/client";
+
 // Auth protection wrapper
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -55,6 +58,17 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     if (user && isAuthenticated === null) {
       setIsAuthenticated(true);
     }
+    
+    // Set up auth state change listener
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setIsAuthenticated(!!session);
+      }
+    );
+    
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, [location.pathname]);
   
   if (isAuthenticated === null) {
@@ -70,9 +84,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     <Navigate to="/login" state={{ from: location }} replace />
   );
 };
-
-// Import Supabase client for auth check
-import { supabase } from "@/integrations/supabase/client";
 
 const queryClient = new QueryClient({
   defaultOptions: {
