@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -58,6 +57,37 @@ const HomePage = () => {
     if (user?.username) return user.username;
     return "there";
   };
+
+  const exploreCards = [
+    {
+      title: "Daily Routines",
+      description: "Harmonize your day with Ayurvedic practices",
+      path: "/daily-routine",
+      bgClass: "from-amber-50 to-amber-100",
+      image: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80"
+    },
+    {
+      title: "Ayurvedic Diet",
+      description: "Nourish your body with the right foods",
+      path: "/diet",
+      bgClass: "from-green-50 to-green-100",
+      image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80"
+    },
+    {
+      title: "Natural Remedies",
+      description: "Traditional solutions for common ailments",
+      path: "/remedies",
+      bgClass: "from-purple-50 to-purple-100",
+      image: "https://images.unsplash.com/photo-1471864190281-a93a3070b6de?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80"
+    },
+    {
+      title: "Herbal Shop",
+      description: "Quality Ayurvedic products and herbs",
+      path: "/shop",
+      bgClass: "from-blue-50 to-blue-100",
+      image: "https://images.unsplash.com/photo-1471193945509-9ad0617afabf?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80"
+    }
+  ];
 
   return (
     <div className="max-w-md mx-auto p-4 pb-20">
@@ -127,37 +157,27 @@ const HomePage = () => {
         <h2 className="text-xl font-medium mb-4 font-playfair">Explore</h2>
         
         <div className="grid grid-cols-2 gap-4">
-          <Card 
-            className="p-4 bg-gradient-to-br from-amber-50 to-amber-100 border-none hover:shadow-md transition-shadow cursor-pointer"
-            onClick={() => navigate('/daily-routine')}
-          >
-            <h3 className="font-medium mb-1">Daily Routines</h3>
-            <p className="text-xs text-gray-600">Harmonize your day with Ayurvedic practices</p>
-          </Card>
-          
-          <Card 
-            className="p-4 bg-gradient-to-br from-green-50 to-green-100 border-none hover:shadow-md transition-shadow cursor-pointer"
-            onClick={() => navigate('/diet')}
-          >
-            <h3 className="font-medium mb-1">Ayurvedic Diet</h3>
-            <p className="text-xs text-gray-600">Nourish your body with the right foods</p>
-          </Card>
-          
-          <Card 
-            className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 border-none hover:shadow-md transition-shadow cursor-pointer"
-            onClick={() => navigate('/remedies')}
-          >
-            <h3 className="font-medium mb-1">Natural Remedies</h3>
-            <p className="text-xs text-gray-600">Traditional solutions for common ailments</p>
-          </Card>
-          
-          <Card 
-            className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 border-none hover:shadow-md transition-shadow cursor-pointer"
-            onClick={() => navigate('/shop')}
-          >
-            <h3 className="font-medium mb-1">Herbal Shop</h3>
-            <p className="text-xs text-gray-600">Quality Ayurvedic products and herbs</p>
-          </Card>
+          {exploreCards.map((card) => (
+            <Card 
+              key={card.title}
+              className={`p-0 overflow-hidden border-none hover:shadow-md transition-shadow cursor-pointer h-48 relative`}
+              onClick={() => navigate(card.path)}
+            >
+              <div className="absolute inset-0 z-0">
+                <img 
+                  src={card.image} 
+                  alt={card.title} 
+                  className="w-full h-full object-cover"
+                />
+                <div className={`absolute inset-0 bg-gradient-to-t from-black/70 to-transparent`} />
+              </div>
+              
+              <div className="absolute bottom-0 left-0 p-4 w-full z-10">
+                <h3 className="font-medium mb-1 text-white">{card.title}</h3>
+                <p className="text-xs text-white/80">{card.description}</p>
+              </div>
+            </Card>
+          ))}
         </div>
         
         <Button 

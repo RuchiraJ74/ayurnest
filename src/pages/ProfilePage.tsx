@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -14,11 +13,17 @@ import { format } from 'date-fns';
 import { motion } from 'framer-motion';
 
 interface UserProfile {
-  full_name?: string;
-  email?: string;
-  signup_date?: string;
-  delivery_address?: string;
-  avatar?: string;  // Added avatar property to the interface
+  id: string;
+  full_name: string | null;
+  phone_number: string | null;
+  email: string | null;
+  delivery_address: string | null;
+  signup_date: string | null;
+  preferences: {
+    darkMode: boolean;
+    notifications: boolean;
+  } | null;
+  avatar: string | null; // Added the missing avatar property
 }
 
 const ProfilePage = () => {
@@ -44,10 +49,14 @@ const ProfilePage = () => {
             console.error('Error fetching profile:', profileError);
           } else if (profileData) {
             setUserProfile({
+              id: profileData.id,
               full_name: profileData.full_name,
+              phone_number: profileData.phone_number,
               email: profileData.email || user.email,
+              delivery_address: profileData.delivery_address,
               signup_date: profileData.signup_date,
-              delivery_address: profileData.delivery_address
+              preferences: profileData.preferences,
+              avatar: profileData.avatar
             });
           }
           

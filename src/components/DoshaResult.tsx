@@ -1,16 +1,89 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { doshaProfiles } from '@/data/doshaData';
 import { useAuth } from '@/context/AuthContext';
 import { motion } from 'framer-motion';
+import { supabase } from '@/integrations/supabase/client';
 
 const DoshaResult: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [dosha, setDosha] = useState<string>('tridosha');
   
-  const dosha = user?.dosha || 'tridosha';
+  useEffect(() => {
+    // Try to get dosha from user object first
+    if (user?.dosha) {
+      setDosha(user.dosha);
+      return;
+    }
+    
+    // If not available in user object, try to get from supabase or local storage
+    const fetchUserDosha = async () => {
+      // First try to get from Supabase if user is logged in
+      if (user?.id) {
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('preferences')
+            .eq('id', user.id)
+            .single();
+            
+          if (data?.preferences?.dosha) {
+            setDosha(data.preferences.dosha);
+            return;
+          }
+        } catch (error) {
+          console.error("Error fetching dosha from profile:", error);
+        }
+      }
+      
+      // Fall back to local storage if not found in Supabase
+      const savedDosha = localStorage.getItem('ayurnest_dosha');
+      if (savedDosha) {
+        setDosha(savedDosha);
+      }
+    };
+    
+    fetchUserDosha();
+  }, [user]);
+  
+  // Save dosha to local storage and Supabase profile if user is logged in
+  useEffect(() => {
+    if (dosha && dosha !== 'tridosha') {
+      // Save to local storage
+      localStorage.setItem('ayurnest_dosha', dosha);
+      
+      // Save to Supabase if user is logged in
+      if (user?.id) {
+        const updateUserProfile = async () => {
+          try {
+            const { data: existingProfile } = await supabase
+              .from('profiles')
+              .select('preferences')
+              .eq('id', user.id)
+              .single();
+            
+            const updatedPreferences = {
+              ...(existingProfile?.preferences || {}),
+              dosha: dosha
+            };
+            
+            await supabase
+              .from('profiles')
+              .update({ preferences: updatedPreferences })
+              .eq('id', user.id);
+          } catch (error) {
+            console.error("Error saving dosha to profile:", error);
+          }
+        };
+        
+        updateUserProfile();
+      }
+    }
+  }, [dosha, user]);
+  
   const doshaProfile = doshaProfiles[dosha as keyof typeof doshaProfiles];
   
   return (

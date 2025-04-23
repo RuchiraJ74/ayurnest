@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getProductById, getRelatedProducts } from '@/data/productData';
@@ -13,8 +12,8 @@ import { useAuth } from '@/context/AuthContext';
 const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { addItem, items } = useCart();
-  const { addToFavorites, removeFromFavorites, isFavorite } = useAuth();
+  const { addItem, isFavorite, toggleFavorite } = useCart();
+  const { addToFavorites, removeFromFavorites, isFavorite: authIsFavorite } = useAuth();
   const [isFav, setIsFav] = useState(false);
   const [isCheckingFav, setIsCheckingFav] = useState(true);
   
@@ -24,14 +23,14 @@ const ProductDetailPage: React.FC = () => {
     const checkFavorite = async () => {
       if (product) {
         setIsCheckingFav(true);
-        const result = await isFavorite(product.id);
+        const result = await authIsFavorite(product.id);
         setIsFav(result);
         setIsCheckingFav(false);
       }
     };
     
     checkFavorite();
-  }, [product, isFavorite]);
+  }, [product, authIsFavorite]);
   
   if (!product) {
     return (
@@ -50,8 +49,9 @@ const ProductDetailPage: React.FC = () => {
   
   const handleAddToCart = () => {
     addItem(product);
-    toast.success("Added to Cart", {
-      description: `${product.name} added to your cart`,
+    toast({
+      title: "Added to cart",
+      description: `${product.name} has been added to your cart`,
     });
   };
   
@@ -152,36 +152,30 @@ const ProductDetailPage: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <div className="flex gap-3">
+          <div className="flex space-x-3">
             <Button 
-              className="ayur-button flex-1 flex items-center gap-2"
-              onClick={handleAddToCart}
+              className="flex-1 ayur-button"
+              onClick={() => {
+                addItem(product);
+                toast({
+                  title: "Added to cart",
+                  description: `${product.name} has been added to your cart`,
+                });
+              }}
             >
-              <ShoppingBag size={18} />
-              <span>{quantity > 0 ? 'Add More' : 'Add to Cart'}</span>
+              Add to Cart
             </Button>
-            
-            {quantity > 0 && (
-              <div className="flex items-center justify-between bg-white border rounded-lg overflow-hidden">
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={() => addItem(product, -1)}
-                  className="h-full rounded-none"
-                >
-                  <Minus size={16} />
-                </Button>
-                <span className="w-10 text-center font-medium">{quantity}</span>
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={() => addItem(product, 1)}
-                  className="h-full rounded-none"
-                >
-                  <Plus size={16} />
-                </Button>
-              </div>
-            )}
+            <Button
+              variant="outline"
+              size="icon"
+              className={`border-gray-200 ${isFavorite(product.id) ? 'bg-red-50' : ''}`}
+              onClick={() => toggleFavorite(product.id)}
+            >
+              <Heart 
+                size={20} 
+                className={isFavorite(product.id) ? "fill-red-500 text-red-500" : ""} 
+              />
+            </Button>
           </div>
         </motion.div>
         

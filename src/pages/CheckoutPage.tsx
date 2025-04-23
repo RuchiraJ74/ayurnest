@@ -315,7 +315,7 @@ const CheckoutPage: React.FC = () => {
               <RadioGroupItem value="upi" id="upi" className="mt-1" />
               <div className="ml-3 flex-1">
                 <Label htmlFor="upi" className="font-medium flex items-center">
-                  <Smartphone className="mr-2 h-5 w-5" /> UPI (PhonePe, Google Pay, etc.)
+                  <Smartphone className="mr-2 h-5 w-5" /> UPI (PhonePe, Google Pay)
                 </Label>
                 
                 {paymentMethod === 'upi' && (
@@ -330,21 +330,38 @@ const CheckoutPage: React.FC = () => {
                       />
                     </div>
                     
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="flex items-center justify-center bg-gray-100 rounded-md p-2 cursor-pointer hover:bg-gray-200 transition-colors" onClick={() => setUpiId(`${upiId.split('@')[0] || ''}@paytm`)}>
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/2/24/Paytm_Logo_%282020%29.svg" alt="Paytm" className="h-5" />
+                    <div className="grid grid-cols-2 gap-2">
+                      <div 
+                        className="flex items-center justify-center bg-gray-100 rounded-md p-3 cursor-pointer hover:bg-gray-200 transition-colors" 
+                        onClick={() => {
+                          setUpiId(`${upiId.split('@')[0] || ''}@okicici`);
+                          window.open(`https://pay.google.com`, '_blank');
+                        }}
+                      >
+                        <img 
+                          src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c7/Google_Pay_Logo_%282020%29.svg/1024px-Google_Pay_Logo_%282020%29.svg.png" 
+                          alt="Google Pay" 
+                          className="h-7" 
+                        />
                       </div>
-                      <div className="flex items-center justify-center bg-gray-100 rounded-md p-2 cursor-pointer hover:bg-gray-200 transition-colors" onClick={() => setUpiId(`${upiId.split('@')[0] || ''}@okicici`)}>
-                        <span className="text-sm font-semibold">GPay</span>
-                      </div>
-                      <div className="flex items-center justify-center bg-gray-100 rounded-md p-2 cursor-pointer hover:bg-gray-200 transition-colors" onClick={() => setUpiId(`${upiId.split('@')[0] || ''}@ybl`)}>
-                        <span className="text-sm font-semibold">PhonePe</span>
+                      <div 
+                        className="flex items-center justify-center bg-gray-100 rounded-md p-3 cursor-pointer hover:bg-gray-200 transition-colors" 
+                        onClick={() => {
+                          setUpiId(`${upiId.split('@')[0] || ''}@ybl`);
+                          window.open(`https://www.phonepe.com`, '_blank');
+                        }}
+                      >
+                        <img 
+                          src="https://download.logo.wine/logo/PhonePe/PhonePe-Logo.wine.png" 
+                          alt="PhonePe" 
+                          className="h-7" 
+                        />
                       </div>
                     </div>
                     
                     <div className="p-3 bg-blue-50 rounded-md flex items-center space-x-2 text-sm text-blue-700">
                       <Info size={16} />
-                      <span>You will receive a payment request on your UPI app</span>
+                      <span>You will be redirected to complete payment</span>
                     </div>
                   </div>
                 )}

@@ -4,11 +4,12 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, Circle, Truck, Package, Home, Clock, MapPin } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { format } from 'date-fns';
 import MapTracker from './MapTracker';
 
 type OrderTrackingProps = {
   orderId: string;
-  status: 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  status: 'processing' | 'shipped' | 'outForDelivery' | 'delivered' | 'cancelled';
   estimatedDelivery?: string;
   lastUpdated: string;
   currentLocation?: string;
@@ -29,6 +30,7 @@ const OrderTracking: React.FC<OrderTrackingProps> = ({
     switch (status) {
       case 'processing': return 0;
       case 'shipped': return 1;
+      case 'outForDelivery': return 1.5; // Between shipped and delivered
       case 'delivered': return 2;
       case 'cancelled': return -1;
       default: return 0;
@@ -55,6 +57,26 @@ const OrderTracking: React.FC<OrderTrackingProps> = ({
     }
   ];
 
+  // Format dates using date-fns for accurate display
+  const formatEstimatedDelivery = () => {
+    if (!estimatedDelivery) return '';
+    try {
+      return format(new Date(estimatedDelivery), 'MMM d, yyyy');
+    } catch (e) {
+      console.error("Error formatting estimated delivery date:", e);
+      return estimatedDelivery;
+    }
+  };
+
+  const formatLastUpdated = () => {
+    try {
+      return format(new Date(lastUpdated), 'MMM d, yyyy h:mm a');
+    } catch (e) {
+      console.error("Error formatting last updated date:", e);
+      return lastUpdated;
+    }
+  };
+
   return (
     <div className="w-full bg-white rounded-xl shadow-sm p-6">
       <div className="mb-4 flex justify-between items-center">
@@ -72,7 +94,7 @@ const OrderTracking: React.FC<OrderTrackingProps> = ({
             <div className="text-right">
               <p className="text-xs text-gray-500">Estimated Delivery</p>
               <p className="text-sm font-medium flex items-center">
-                <Clock size={14} className="mr-1" /> {estimatedDelivery}
+                <Clock size={14} className="mr-1" /> {formatEstimatedDelivery()}
               </p>
             </div>
           )
@@ -105,7 +127,8 @@ const OrderTracking: React.FC<OrderTrackingProps> = ({
           {steps.map((step, index) => {
             const Icon = step.icon;
             const isCompleted = index <= statusIndex;
-            const isActive = index === statusIndex;
+            const isActive = index === Math.floor(statusIndex) || 
+                            (index === 1 && status === 'outForDelivery');
             
             return (
               <motion.div 
@@ -128,7 +151,7 @@ const OrderTracking: React.FC<OrderTrackingProps> = ({
                   </h4>
                   <p className="text-xs text-gray-500 mt-1">{step.description}</p>
                   
-                  {isActive && currentLocation && index === 1 && (
+                  {isActive && currentLocation && (status === 'shipped' || status === 'outForDelivery') && index === 1 && (
                     <div className="mt-2 bg-blue-50 p-2 rounded text-xs">
                       <p className="font-medium text-blue-800">Current Location:</p>
                       <p className="text-blue-700 flex items-center">
@@ -146,7 +169,7 @@ const OrderTracking: React.FC<OrderTrackingProps> = ({
       <div className="border-t border-gray-100 pt-4">
         <div className="flex justify-between items-center">
           <p className="text-xs text-gray-500">
-            Last Updated: {lastUpdated}
+            Last Updated: {formatLastUpdated()}
           </p>
           
           <Button

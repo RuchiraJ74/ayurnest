@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Toaster as ShadcnToaster } from "@/components/ui/toaster";
 import { Toaster } from "sonner";
@@ -31,6 +30,7 @@ import OrderTrackingPage from "@/pages/OrderTrackingPage";
 import ProfilePage from "@/pages/ProfilePage";
 import NotFound from "@/pages/NotFound";
 import ResetPasswordForm from "@/components/ResetPasswordForm";
+import FavoritesPage from './pages/FavoritesPage';
 
 // Import Supabase client for auth check
 import { supabase } from "@/integrations/supabase/client";
@@ -131,6 +131,9 @@ const App = () => (
                   <Route path="/order-tracking" element={<OrderTrackingPage />} />
                   <Route path="/profile" element={<ProfilePage />} />
                 </Route>
+                
+                {/* Favorites Page */}
+                <Route path="/favorites" element={<FavoritesPage />} />
                 
                 {/* 404 Not Found */}
                 <Route path="*" element={<NotFound />} />
