@@ -90,7 +90,7 @@ const ProfilePage: React.FC = () => {
         phoneNumber: data?.phone_number || '',
         deliveryAddress: data?.delivery_address || '',
         preferences: preferences,
-        avatar: data?.avatar_url || ''
+        avatar: (data as any)?.avatar_url || ''
       });
     } catch (error) {
       console.error('Error in fetchUserProfile:', error);
