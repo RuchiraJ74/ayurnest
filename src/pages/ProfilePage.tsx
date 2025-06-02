@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { User, Mail, Phone, MapPin, Settings, Heart, Package, LogOut, Edit3, Camera } from 'lucide-react';
@@ -19,12 +18,13 @@ interface UserProfile {
   preferences?: {
     darkMode: boolean;
     notifications: boolean;
+    emailUpdates: boolean;
   };
   avatar?: string;
 }
 
 const ProfilePage: React.FC = () => {
-  const { user, logout, updateUserProfile } = useAuth();
+  const { user, logout } = useAuth();
   const [profile, setProfile] = useState<UserProfile>({
     id: '',
     username: '',
@@ -35,6 +35,7 @@ const ProfilePage: React.FC = () => {
     preferences: {
       darkMode: false,
       notifications: true,
+      emailUpdates: true,
     },
     avatar: ''
   });
@@ -63,12 +64,13 @@ const ProfilePage: React.FC = () => {
         return;
       }
 
-      let preferences = { darkMode: false, notifications: true };
+      let preferences = { darkMode: false, notifications: true, emailUpdates: true };
       if (data?.preferences && typeof data.preferences === 'object' && data.preferences !== null) {
         const prefData = data.preferences as any;
         preferences = {
           darkMode: prefData.darkMode === true,
-          notifications: prefData.notifications === true
+          notifications: prefData.notifications === true,
+          emailUpdates: prefData.emailUpdates === true
         };
       }
 
@@ -91,12 +93,22 @@ const ProfilePage: React.FC = () => {
 
   const handleSave = async () => {
     try {
-      await updateUserProfile({
-        fullName: profile.fullName,
-        phoneNumber: profile.phoneNumber,
-        deliveryAddress: profile.deliveryAddress,
-        preferences: profile.preferences
-      });
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: profile.fullName,
+          phone_number: profile.phoneNumber,
+          delivery_address: profile.deliveryAddress,
+          preferences: profile.preferences
+        })
+        .eq('id', user?.id);
+
+      if (error) {
+        console.error('Error updating profile:', error);
+        toast.error('Failed to update profile');
+        return;
+      }
+
       setIsEditing(false);
       toast.success('Profile updated successfully!');
     } catch (error) {
@@ -199,11 +211,11 @@ const ProfilePage: React.FC = () => {
                 <div className="space-y-2">
                   <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
                     <Package className="w-4 h-4" />
-                    <span>{user.orderHistory?.length || 0} Orders</span>
+                    <span>0 Orders</span>
                   </div>
                   <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
                     <Heart className="w-4 h-4" />
-                    <span>{user.favorites?.length || 0} Favorites</span>
+                    <span>0 Favorites</span>
                   </div>
                 </div>
               </CardContent>

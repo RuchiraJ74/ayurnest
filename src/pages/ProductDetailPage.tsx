@@ -1,11 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Heart, ShoppingCart, Star, Truck, Shield, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/CartContext';
-import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -26,8 +24,7 @@ interface Product {
 const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { addToCart } = useCart();
-  const { user, addToFavorites, removeFromFavorites, isFavorite } = useAuth();
+  const { addItem, toggleFavorite, isFavorite } = useCart();
   
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -39,7 +36,7 @@ const ProductDetailPage: React.FC = () => {
       fetchProduct();
       checkIfFavorite();
     }
-  }, [id, user]);
+  }, [id]);
 
   const fetchProduct = async () => {
     try {
@@ -80,47 +77,33 @@ const ProductDetailPage: React.FC = () => {
     }
   };
 
-  const checkIfFavorite = async () => {
-    if (user && id) {
-      try {
-        const favorite = await isFavorite(id);
-        setIsInFavorites(favorite);
-      } catch (error) {
-        console.error('Error checking favorite status:', error);
-      }
+  const checkIfFavorite = () => {
+    if (id) {
+      setIsInFavorites(isFavorite(id));
     }
   };
 
   const handleAddToCart = () => {
     if (!product) return;
     
-    addToCart({
+    addItem({
       id: product.id,
       name: product.name,
+      description: product.description,
       price: product.price,
-      image: product.image,
-      quantity
-    });
+      category: product.category,
+      image: product.image
+    }, quantity);
     
     toast.success(`${product.name} added to cart!`);
   };
 
-  const toggleFavorite = async () => {
-    if (!user) {
-      toast.error('Please sign in to add favorites');
-      return;
-    }
-
+  const handleToggleFavorite = async () => {
     if (!product) return;
 
     try {
-      if (isInFavorites) {
-        await removeFromFavorites(product.id);
-        setIsInFavorites(false);
-      } else {
-        await addToFavorites(product.id);
-        setIsInFavorites(true);
-      }
+      await toggleFavorite(product.id);
+      setIsInFavorites(!isInFavorites);
     } catch (error) {
       console.error('Error toggling favorite:', error);
       toast.error('Failed to update favorites');
@@ -207,7 +190,7 @@ const ProductDetailPage: React.FC = () => {
                   </div>
                   
                   <button
-                    onClick={toggleFavorite}
+                    onClick={handleToggleFavorite}
                     className="p-2 rounded-full hover:bg-gray-100 transition-colors"
                   >
                     <Heart

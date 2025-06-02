@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Heart, ShoppingCart, Star } from 'lucide-react';
@@ -21,8 +20,8 @@ interface Product {
 }
 
 const FavoritesPage: React.FC = () => {
-  const { user, removeFromFavorites } = useAuth();
-  const { addToCart } = useCart();
+  const { user } = useAuth();
+  const { addItem, toggleFavorite } = useCart();
   const navigate = useNavigate();
   const [favoriteProducts, setFavoriteProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,7 +74,7 @@ const FavoritesPage: React.FC = () => {
         image: product.image_url,
         description: product.description,
         category: product.category,
-        rating: 4.5 // Default rating since it's not in the database
+        rating: 4.5
       }));
 
       setFavoriteProducts(products);
@@ -88,7 +87,7 @@ const FavoritesPage: React.FC = () => {
 
   const handleRemoveFromFavorites = async (productId: string) => {
     try {
-      await removeFromFavorites(productId);
+      await toggleFavorite(productId);
       setFavoriteProducts(prev => prev.filter(product => product.id !== productId));
       toast.success('Removed from favorites');
     } catch (error) {
@@ -98,12 +97,13 @@ const FavoritesPage: React.FC = () => {
   };
 
   const handleAddToCart = (product: Product) => {
-    addToCart({
+    addItem({
       id: product.id,
       name: product.name,
+      description: product.description,
       price: product.price,
-      image: product.image,
-      quantity: 1
+      category: product.category,
+      image: product.image
     });
     toast.success(`${product.name} added to cart!`);
   };
