@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -6,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/CartContext';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { getProductById } from '@/data/productData';
 
 interface Product {
   id: string;
@@ -40,6 +42,28 @@ const ProductDetailPage: React.FC = () => {
 
   const fetchProduct = async () => {
     try {
+      // First try to get from local data
+      const localProduct = getProductById(id!);
+      
+      if (localProduct) {
+        setProduct({
+          id: localProduct.id,
+          name: localProduct.name,
+          price: localProduct.price,
+          image: localProduct.image,
+          description: localProduct.description,
+          category: localProduct.category,
+          benefits: ['Improves digestion', 'Boosts immunity', 'Natural ingredients'],
+          ingredients: ['Organic herbs', 'Natural extracts', 'Pure ingredients'],
+          usage: 'Take as directed by your healthcare provider',
+          rating: 4.5,
+          reviews: 127
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Fallback to database if local product not found
       const { data, error } = await supabase
         .from('products')
         .select('*')
@@ -114,6 +138,13 @@ const ProductDetailPage: React.FC = () => {
     return (
       <div className="min-h-screen bg-ayur-light p-4 pb-20">
         <div className="max-w-4xl mx-auto pt-6">
+          <button
+            onClick={() => navigate('/shop')}
+            className="flex items-center text-ayur-primary mb-6 hover:text-ayur-secondary transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            Back to Shop
+          </button>
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-ayur-primary mx-auto"></div>
             <p className="mt-4 text-gray-600">Loading product...</p>
@@ -127,6 +158,13 @@ const ProductDetailPage: React.FC = () => {
     return (
       <div className="min-h-screen bg-ayur-light p-4 pb-20">
         <div className="max-w-4xl mx-auto pt-6">
+          <button
+            onClick={() => navigate('/shop')}
+            className="flex items-center text-ayur-primary mb-6 hover:text-ayur-secondary transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            Back to Shop
+          </button>
           <div className="text-center">
             <h2 className="text-xl font-semibold text-gray-600 mb-4">Product not found</h2>
             <Button onClick={() => navigate('/shop')} className="ayur-button">

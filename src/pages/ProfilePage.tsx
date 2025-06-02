@@ -1,12 +1,14 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { User, Mail, Phone, MapPin, Settings, Heart, Package, LogOut, Edit3, Camera } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Settings, Heart, Package, LogOut, Edit3, Camera, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
 
 interface UserProfile {
   id: string;
@@ -25,6 +27,7 @@ interface UserProfile {
 
 const ProfilePage: React.FC = () => {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<UserProfile>({
     id: '',
     username: '',
@@ -58,7 +61,7 @@ const ProfilePage: React.FC = () => {
         .eq('id', user.id)
         .single();
 
-      if (error) {
+      if (error && error.code !== 'PGRST116') {
         console.error('Error fetching profile:', error);
         setLoading(false);
         return;
@@ -69,15 +72,15 @@ const ProfilePage: React.FC = () => {
         const prefData = data.preferences as any;
         preferences = {
           darkMode: prefData.darkMode === true,
-          notifications: prefData.notifications === true,
-          emailUpdates: prefData.emailUpdates === true
+          notifications: prefData.notifications !== false,
+          emailUpdates: prefData.emailUpdates !== false
         };
       }
 
       setProfile({
         id: user.id,
-        username: user.username,
-        email: user.email,
+        username: user.username || user.email?.split('@')[0] || '',
+        email: user.email || '',
         fullName: data?.full_name || '',
         phoneNumber: data?.phone_number || '',
         deliveryAddress: data?.delivery_address || '',
@@ -95,13 +98,16 @@ const ProfilePage: React.FC = () => {
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({
+        .upsert({
+          id: user?.id,
           full_name: profile.fullName,
           phone_number: profile.phoneNumber,
           delivery_address: profile.deliveryAddress,
-          preferences: profile.preferences
-        })
-        .eq('id', user?.id);
+          preferences: profile.preferences,
+          email: profile.email
+        }, {
+          onConflict: 'id'
+        });
 
       if (error) {
         console.error('Error updating profile:', error);
@@ -121,16 +127,31 @@ const ProfilePage: React.FC = () => {
     try {
       await logout();
       toast.success('Logged out successfully');
+      navigate('/login');
     } catch (error) {
       console.error('Logout error:', error);
       toast.error('Failed to logout');
     }
   };
 
+  const handleInputChange = (field: keyof UserProfile, value: string) => {
+    setProfile(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-ayur-light p-4 pb-20">
         <div className="max-w-4xl mx-auto pt-6">
+          <button
+            onClick={() => navigate('/home')}
+            className="flex items-center text-ayur-primary mb-6 hover:text-ayur-secondary transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            Back to Home
+          </button>
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-ayur-primary mx-auto"></div>
             <p className="mt-4 text-gray-600">Loading profile...</p>
@@ -144,6 +165,13 @@ const ProfilePage: React.FC = () => {
     return (
       <div className="min-h-screen bg-ayur-light p-4 pb-20">
         <div className="max-w-4xl mx-auto pt-6">
+          <button
+            onClick={() => navigate('/home')}
+            className="flex items-center text-ayur-primary mb-6 hover:text-ayur-secondary transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            Back to Home
+          </button>
           <div className="text-center">
             <h2 className="text-xl font-semibold text-gray-600">Please sign in to view your profile</h2>
           </div>
@@ -162,9 +190,17 @@ const ProfilePage: React.FC = () => {
           className="mb-6"
         >
           <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-playfair font-bold text-ayur-secondary">
-              My Profile
-            </h1>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate('/home')}
+                className="flex items-center text-ayur-primary hover:text-ayur-secondary transition-colors"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+              <h1 className="text-3xl font-playfair font-bold text-ayur-secondary">
+                My Profile
+              </h1>
+            </div>
             <Button
               onClick={() => setIsEditing(!isEditing)}
               variant="outline"
@@ -245,9 +281,10 @@ const ProfilePage: React.FC = () => {
                     </label>
                     <Input
                       value={profile.fullName || ''}
-                      onChange={(e) => setProfile({ ...profile, fullName: e.target.value })}
+                      onChange={(e) => handleInputChange('fullName', e.target.value)}
                       disabled={!isEditing}
                       placeholder="Enter your full name"
+                      className={!isEditing ? 'bg-gray-50' : ''}
                     />
                   </div>
                   
@@ -270,9 +307,10 @@ const ProfilePage: React.FC = () => {
                     </label>
                     <Input
                       value={profile.phoneNumber || ''}
-                      onChange={(e) => setProfile({ ...profile, phoneNumber: e.target.value })}
+                      onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
                       disabled={!isEditing}
                       placeholder="Enter your phone number"
+                      className={!isEditing ? 'bg-gray-50' : ''}
                     />
                   </div>
                   
@@ -283,9 +321,10 @@ const ProfilePage: React.FC = () => {
                     </label>
                     <Input
                       value={profile.deliveryAddress || ''}
-                      onChange={(e) => setProfile({ ...profile, deliveryAddress: e.target.value })}
+                      onChange={(e) => handleInputChange('deliveryAddress', e.target.value)}
                       disabled={!isEditing}
                       placeholder="Enter your delivery address"
+                      className={!isEditing ? 'bg-gray-50' : ''}
                     />
                   </div>
                 </div>

@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Heart, ShoppingCart, Star } from 'lucide-react';
+import { Heart, ShoppingCart, Star, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthContext';
@@ -8,6 +9,7 @@ import { useCart } from '@/context/CartContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import { getProductById } from '@/data/productData';
 
 interface Product {
   id: string;
@@ -54,6 +56,31 @@ const FavoritesPage: React.FC = () => {
         return;
       }
 
+      // Get products from local data first
+      const products: Product[] = [];
+      favoritesData.forEach(fav => {
+        const localProduct = getProductById(fav.product_id);
+        if (localProduct) {
+          products.push({
+            id: localProduct.id,
+            name: localProduct.name,
+            price: localProduct.price,
+            image: localProduct.image,
+            description: localProduct.description,
+            category: localProduct.category,
+            rating: 4.5
+          });
+        }
+      });
+
+      // If we have products from local data, use them
+      if (products.length > 0) {
+        setFavoriteProducts(products);
+        setLoading(false);
+        return;
+      }
+
+      // Fallback to database products
       const productIds = favoritesData.map(fav => fav.product_id);
       
       const { data: productsData, error: productsError } = await supabase
@@ -67,7 +94,7 @@ const FavoritesPage: React.FC = () => {
         return;
       }
 
-      const products = (productsData || []).map(product => ({
+      const dbProducts = (productsData || []).map(product => ({
         id: product.id,
         name: product.name,
         price: product.price,
@@ -77,7 +104,7 @@ const FavoritesPage: React.FC = () => {
         rating: 4.5
       }));
 
-      setFavoriteProducts(products);
+      setFavoriteProducts(dbProducts);
     } catch (error) {
       console.error('Error in fetchFavorites:', error);
     } finally {
@@ -112,6 +139,13 @@ const FavoritesPage: React.FC = () => {
     return (
       <div className="min-h-screen bg-ayur-light p-4 pb-20">
         <div className="max-w-md mx-auto pt-6">
+          <button
+            onClick={() => navigate('/home')}
+            className="flex items-center text-ayur-primary mb-6 hover:text-ayur-secondary transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            Back to Home
+          </button>
           <div className="text-center">
             <Heart className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-gray-600 mb-2">Sign in to view favorites</h2>
@@ -129,6 +163,13 @@ const FavoritesPage: React.FC = () => {
     return (
       <div className="min-h-screen bg-ayur-light p-4 pb-20">
         <div className="max-w-md mx-auto pt-6">
+          <button
+            onClick={() => navigate('/home')}
+            className="flex items-center text-ayur-primary mb-6 hover:text-ayur-secondary transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            Back to Home
+          </button>
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-ayur-primary mx-auto"></div>
             <p className="mt-4 text-gray-600">Loading your favorites...</p>
@@ -147,10 +188,18 @@ const FavoritesPage: React.FC = () => {
           transition={{ duration: 0.5 }}
           className="mb-6"
         >
-          <h1 className="text-3xl font-playfair font-bold text-ayur-secondary mb-2">
-            My Favorites
-          </h1>
-          <p className="text-gray-600">Products you've saved for later</p>
+          <div className="flex items-center gap-3 mb-2">
+            <button
+              onClick={() => navigate('/home')}
+              className="flex items-center text-ayur-primary hover:text-ayur-secondary transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <h1 className="text-3xl font-playfair font-bold text-ayur-secondary">
+              My Favorites
+            </h1>
+          </div>
+          <p className="text-gray-600 ml-8">Products you've saved for later</p>
         </motion.div>
 
         {favoriteProducts.length === 0 ? (
@@ -186,7 +235,8 @@ const FavoritesPage: React.FC = () => {
                     <img
                       src={product.image}
                       alt={product.name}
-                      className="w-full h-48 object-cover"
+                      className="w-full h-48 object-cover cursor-pointer"
+                      onClick={() => navigate(`/shop/${product.id}`)}
                     />
                     <button
                       onClick={() => handleRemoveFromFavorites(product.id)}

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { products, categories, getProductsByCategory } from '@/data/productData';
-import { Search, ShoppingBag, Filter, X, Heart } from 'lucide-react';
+import { Search, ShoppingBag, Filter, X, Heart, ArrowLeft } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
@@ -125,10 +125,11 @@ const ShopPage: React.FC = () => {
   
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    // Could add additional search functionality here
-    toast("Search results", {
-      description: `Showing results for "${searchTerm}"`
-    });
+    if (searchTerm.trim()) {
+      toast("Search results", {
+        description: `Showing results for "${searchTerm}"`
+      });
+    }
   };
   
   return (
@@ -137,9 +138,18 @@ const ShopPage: React.FC = () => {
         <motion.div 
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
+          className="flex items-center gap-3"
         >
-          <h1 className="text-2xl font-bold font-playfair text-ayur-secondary">Ayurvedic Products</h1>
-          <p className="text-gray-600">Quality herbs and wellness items</p>
+          <button
+            onClick={() => navigate('/home')}
+            className="flex items-center text-ayur-primary hover:text-ayur-secondary transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold font-playfair text-ayur-secondary">Ayurvedic Products</h1>
+            <p className="text-gray-600">Quality herbs and wellness items</p>
+          </div>
         </motion.div>
         
         <motion.div 
@@ -210,28 +220,28 @@ const ShopPage: React.FC = () => {
             <h4 className="text-sm font-medium mb-2">Price Range</h4>
             <div className="grid grid-cols-3 gap-2">
               <Button 
-                variant={priceRange[0] === 0 && priceRange[1] === 15 ? "default" : "outline"}
+                variant={priceRange[0] === 0 && priceRange[1] === 20 ? "default" : "outline"}
                 size="sm"
                 className="w-full"
-                onClick={() => handlePriceRangeChange(0, 15)}
+                onClick={() => handlePriceRangeChange(0, 20)}
               >
-                Under $15
+                Under ₹20
               </Button>
               <Button 
-                variant={priceRange[0] === 15 && priceRange[1] === 30 ? "default" : "outline"}
+                variant={priceRange[0] === 20 && priceRange[1] === 35 ? "default" : "outline"}
                 size="sm"
                 className="w-full"
-                onClick={() => handlePriceRangeChange(15, 30)}
+                onClick={() => handlePriceRangeChange(20, 35)}
               >
-                $15 - $30
+                ₹20 - ₹35
               </Button>
               <Button 
-                variant={priceRange[0] === 30 && priceRange[1] === 50 ? "default" : "outline"}
+                variant={priceRange[0] === 35 && priceRange[1] === 50 ? "default" : "outline"}
                 size="sm"
                 className="w-full"
-                onClick={() => handlePriceRangeChange(30, 50)}
+                onClick={() => handlePriceRangeChange(35, 50)}
               >
-                Over $30
+                Over ₹35
               </Button>
             </div>
           </div>
@@ -288,7 +298,7 @@ const ShopPage: React.FC = () => {
                       (e.target as HTMLImageElement).src = "https://via.placeholder.com/400?text=AyurNest";
                     }}
                   />
-                  <Badge className="absolute top-2 right-2 bg-ayur-primary">${product.price.toFixed(2)}</Badge>
+                  <Badge className="absolute top-2 right-2 bg-ayur-primary">₹{product.price.toFixed(2)}</Badge>
                   <button 
                     className={`absolute top-2 left-2 p-1.5 rounded-full ${isFavorite(product.id) ? 'bg-red-500 text-white' : 'bg-white/80 text-gray-500'}`}
                     onClick={(e) => handleFavoriteToggle(e, product.id)}
