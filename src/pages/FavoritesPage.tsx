@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Heart, ShoppingCart, Star, ArrowLeft } from 'lucide-react';
@@ -23,14 +22,14 @@ interface Product {
 
 const FavoritesPage: React.FC = () => {
   const { user } = useAuth();
-  const { addItem, toggleFavorite } = useCart();
+  const { addItem, toggleFavorite, favorites } = useCart();
   const navigate = useNavigate();
   const [favoriteProducts, setFavoriteProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchFavorites();
-  }, [user]);
+  }, [user, favorites]);
 
   const fetchFavorites = async () => {
     if (!user) {
@@ -39,27 +38,10 @@ const FavoritesPage: React.FC = () => {
     }
 
     try {
-      const { data: favoritesData, error: favoritesError } = await supabase
-        .from('favorites')
-        .select('product_id')
-        .eq('user_id', user.id);
-
-      if (favoritesError) {
-        console.error('Error fetching favorites:', favoritesError);
-        setLoading(false);
-        return;
-      }
-
-      if (!favoritesData || favoritesData.length === 0) {
-        setFavoriteProducts([]);
-        setLoading(false);
-        return;
-      }
-
-      // Get products from local data first
+      // Get products from local data based on favorites from context
       const products: Product[] = [];
-      favoritesData.forEach(fav => {
-        const localProduct = getProductById(fav.product_id);
+      favorites.forEach(favoriteId => {
+        const localProduct = getProductById(favoriteId);
         if (localProduct) {
           products.push({
             id: localProduct.id,
@@ -73,38 +55,7 @@ const FavoritesPage: React.FC = () => {
         }
       });
 
-      // If we have products from local data, use them
-      if (products.length > 0) {
-        setFavoriteProducts(products);
-        setLoading(false);
-        return;
-      }
-
-      // Fallback to database products
-      const productIds = favoritesData.map(fav => fav.product_id);
-      
-      const { data: productsData, error: productsError } = await supabase
-        .from('products')
-        .select('*')
-        .in('id', productIds);
-
-      if (productsError) {
-        console.error('Error fetching products:', productsError);
-        setLoading(false);
-        return;
-      }
-
-      const dbProducts = (productsData || []).map(product => ({
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        image: product.image_url,
-        description: product.description,
-        category: product.category,
-        rating: 4.5
-      }));
-
-      setFavoriteProducts(dbProducts);
+      setFavoriteProducts(products);
     } catch (error) {
       console.error('Error in fetchFavorites:', error);
     } finally {
@@ -115,7 +66,6 @@ const FavoritesPage: React.FC = () => {
   const handleRemoveFromFavorites = async (productId: string) => {
     try {
       await toggleFavorite(productId);
-      setFavoriteProducts(prev => prev.filter(product => product.id !== productId));
       toast.success('Removed from favorites');
     } catch (error) {
       console.error('Error removing from favorites:', error);
@@ -199,7 +149,7 @@ const FavoritesPage: React.FC = () => {
               My Favorites
             </h1>
           </div>
-          <p className="text-gray-600 ml-8">Products you've saved for later</p>
+          <p className="text-gray-600 ml-8">Products you've saved for later ({favoriteProducts.length} items)</p>
         </motion.div>
 
         {favoriteProducts.length === 0 ? (

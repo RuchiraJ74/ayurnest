@@ -14,6 +14,7 @@ type OrderTrackingProps = {
   lastUpdated: string;
   currentLocation?: string;
   locationData?: { latitude: number | null; longitude: number | null; last_updated: string | null };
+  orderDate?: string;
 };
 
 const OrderTracking: React.FC<OrderTrackingProps> = ({
@@ -22,7 +23,8 @@ const OrderTracking: React.FC<OrderTrackingProps> = ({
   estimatedDelivery,
   lastUpdated,
   currentLocation,
-  locationData
+  locationData,
+  orderDate
 }) => {
   const navigate = useNavigate();
   
@@ -30,7 +32,7 @@ const OrderTracking: React.FC<OrderTrackingProps> = ({
     switch (status) {
       case 'processing': return 0;
       case 'shipped': return 1;
-      case 'outForDelivery': return 1.5; // Between shipped and delivered
+      case 'outForDelivery': return 1.5;
       case 'delivered': return 2;
       case 'cancelled': return -1;
       default: return 0;
@@ -41,27 +43,40 @@ const OrderTracking: React.FC<OrderTrackingProps> = ({
   
   const steps = [
     {
-      label: 'Order Processing',
+      label: 'Order Placed',
       description: 'Your order has been received and is being processed',
-      icon: Package
+      icon: Package,
+      date: orderDate
     },
     {
       label: 'Order Shipped',
       description: 'Your order is on its way to you',
-      icon: Truck
+      icon: Truck,
+      date: status === 'shipped' || status === 'outForDelivery' || status === 'delivered' ? formatDate(lastUpdated) : undefined
     },
     {
       label: 'Order Delivered',
       description: 'Your order has been delivered',
-      icon: Home
+      icon: Home,
+      date: status === 'delivered' ? formatDate(lastUpdated) : undefined
     }
   ];
 
-  // Format dates using date-fns for accurate display
+  function formatDate(dateString: string) {
+    try {
+      const date = new Date(dateString);
+      return format(date, 'MMM d, yyyy');
+    } catch (e) {
+      console.error("Error formatting date:", e);
+      return dateString;
+    }
+  }
+
   const formatEstimatedDelivery = () => {
     if (!estimatedDelivery) return '';
     try {
-      return format(new Date(estimatedDelivery), 'MMM d, yyyy');
+      const date = new Date(estimatedDelivery);
+      return format(date, 'MMM d, yyyy');
     } catch (e) {
       console.error("Error formatting estimated delivery date:", e);
       return estimatedDelivery;
@@ -70,7 +85,8 @@ const OrderTracking: React.FC<OrderTrackingProps> = ({
 
   const formatLastUpdated = () => {
     try {
-      return format(new Date(lastUpdated), 'MMM d, yyyy h:mm a');
+      const date = new Date(lastUpdated);
+      return format(date, 'MMM d, yyyy h:mm a');
     } catch (e) {
       console.error("Error formatting last updated date:", e);
       return lastUpdated;
@@ -83,6 +99,9 @@ const OrderTracking: React.FC<OrderTrackingProps> = ({
         <div>
           <h3 className="text-lg font-medium text-ayur-secondary">Order Tracking</h3>
           <p className="text-sm text-gray-500">Order #{orderId}</p>
+          {orderDate && (
+            <p className="text-xs text-gray-400">Placed on {formatDate(orderDate)}</p>
+          )}
         </div>
         
         {status === 'cancelled' ? (
@@ -120,10 +139,8 @@ const OrderTracking: React.FC<OrderTrackingProps> = ({
         </div>
       ) : (
         <div className="relative mb-6 px-2">
-          {/* Progress line */}
           <div className="absolute left-6 top-6 h-full w-0.5 bg-gray-200" />
           
-          {/* Steps */}
           {steps.map((step, index) => {
             const Icon = step.icon;
             const isCompleted = index <= statusIndex;
@@ -146,9 +163,14 @@ const OrderTracking: React.FC<OrderTrackingProps> = ({
                   )}
                 </div>
                 <div className="flex-1">
-                  <h4 className={`text-sm font-medium ${isActive ? 'text-ayur-primary' : 'text-gray-700'}`}>
-                    {step.label}
-                  </h4>
+                  <div className="flex items-center justify-between">
+                    <h4 className={`text-sm font-medium ${isActive ? 'text-ayur-primary' : 'text-gray-700'}`}>
+                      {step.label}
+                    </h4>
+                    {step.date && (
+                      <span className="text-xs text-gray-500">{step.date}</span>
+                    )}
+                  </div>
                   <p className="text-xs text-gray-500 mt-1">{step.description}</p>
                   
                   {isActive && currentLocation && (status === 'shipped' || status === 'outForDelivery') && index === 1 && (

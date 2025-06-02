@@ -1,11 +1,12 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { User, Mail, Phone, MapPin, Settings, Heart, Package, LogOut, Edit3, Camera, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthContext';
+import { useCart } from '@/context/CartContext';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -27,6 +28,7 @@ interface UserProfile {
 
 const ProfilePage: React.FC = () => {
   const { user, logout } = useAuth();
+  const { favorites } = useCart();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<UserProfile>({
     id: '',
@@ -44,10 +46,13 @@ const ProfilePage: React.FC = () => {
   });
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [orderCount, setOrderCount] = useState(0);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (user) {
       fetchUserProfile();
+      fetchOrderCount();
     }
   }, [user]);
 
@@ -85,12 +90,32 @@ const ProfilePage: React.FC = () => {
         phoneNumber: data?.phone_number || '',
         deliveryAddress: data?.delivery_address || '',
         preferences: preferences,
-        avatar: '/placeholder.svg'
+        avatar: data?.avatar_url || ''
       });
     } catch (error) {
       console.error('Error in fetchUserProfile:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchOrderCount = async () => {
+    if (!user) return;
+
+    try {
+      const { count, error } = await supabase
+        .from('orders')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error fetching order count:', error);
+        return;
+      }
+
+      setOrderCount(count || 0);
+    } catch (error) {
+      console.error('Error in fetchOrderCount:', error);
     }
   };
 
@@ -104,7 +129,8 @@ const ProfilePage: React.FC = () => {
           phone_number: profile.phoneNumber,
           delivery_address: profile.deliveryAddress,
           preferences: profile.preferences,
-          email: profile.email
+          email: profile.email,
+          avatar_url: profile.avatar
         }, {
           onConflict: 'id'
         });
@@ -139,6 +165,32 @@ const ProfilePage: React.FC = () => {
       ...prev,
       [field]: value
     }));
+  };
+
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    setUploading(true);
+    try {
+      // For now, we'll use a placeholder URL since storage isn't set up
+      // In a real app, you'd upload to Supabase storage here
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        setProfile(prev => ({
+          ...prev,
+          avatar: result
+        }));
+        toast.success('Profile picture updated! Remember to save your changes.');
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      toast.error('Failed to upload profile picture');
+    } finally {
+      setUploading(false);
+    }
   };
 
   if (loading) {
@@ -223,21 +275,23 @@ const ProfilePage: React.FC = () => {
             <Card>
               <CardContent className="p-6 text-center">
                 <div className="relative inline-block mb-4">
-                  <div className="w-24 h-24 bg-ayur-primary/20 rounded-full flex items-center justify-center mx-auto">
-                    {profile.avatar ? (
-                      <img
-                        src={profile.avatar}
-                        alt="Profile"
-                        className="w-24 h-24 rounded-full object-cover"
-                      />
-                    ) : (
-                      <User className="w-12 h-12 text-ayur-primary" />
-                    )}
-                  </div>
+                  <Avatar className="w-24 h-24 mx-auto">
+                    <AvatarImage src={profile.avatar} alt="Profile" />
+                    <AvatarFallback className="bg-ayur-primary/20 text-ayur-primary text-2xl">
+                      {profile.fullName ? profile.fullName.charAt(0) : profile.username.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
                   {isEditing && (
-                    <button className="absolute bottom-0 right-0 p-1 bg-ayur-primary text-white rounded-full">
+                    <label className="absolute bottom-0 right-0 p-1 bg-ayur-primary text-white rounded-full cursor-pointer hover:bg-ayur-secondary transition-colors">
                       <Camera className="w-4 h-4" />
-                    </button>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleAvatarUpload}
+                        className="hidden"
+                        disabled={uploading}
+                      />
+                    </label>
                   )}
                 </div>
                 <h3 className="text-xl font-semibold text-ayur-secondary mb-1">
@@ -247,11 +301,11 @@ const ProfilePage: React.FC = () => {
                 <div className="space-y-2">
                   <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
                     <Package className="w-4 h-4" />
-                    <span>0 Orders</span>
+                    <span>{orderCount} Orders</span>
                   </div>
                   <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
                     <Heart className="w-4 h-4" />
-                    <span>0 Favorites</span>
+                    <span>{favorites.length} Favorites</span>
                   </div>
                 </div>
               </CardContent>
