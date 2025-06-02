@@ -30,9 +30,12 @@ const DoshaResult: React.FC = () => {
             .eq('id', user.id)
             .single();
             
-          if (data?.preferences?.dosha) {
-            setDosha(data.preferences.dosha);
-            return;
+          if (data?.preferences && typeof data.preferences === 'object' && data.preferences !== null) {
+            const preferences = data.preferences as any;
+            if (preferences.dosha) {
+              setDosha(preferences.dosha);
+              return;
+            }
           }
         } catch (error) {
           console.error("Error fetching dosha from profile:", error);
@@ -65,8 +68,13 @@ const DoshaResult: React.FC = () => {
               .eq('id', user.id)
               .single();
             
+            let existingPreferences = {};
+            if (existingProfile?.preferences && typeof existingProfile.preferences === 'object' && existingProfile.preferences !== null) {
+              existingPreferences = existingProfile.preferences as any;
+            }
+            
             const updatedPreferences = {
-              ...(existingProfile?.preferences || {}),
+              ...existingPreferences,
               dosha: dosha
             };
             

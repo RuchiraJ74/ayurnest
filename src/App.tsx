@@ -1,9 +1,10 @@
+
 import { useState, useEffect } from "react";
 import { Toaster as ShadcnToaster } from "@/components/ui/toaster";
 import { Toaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, Outlet } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 
 // Context Providers
@@ -31,6 +32,7 @@ import ProfilePage from "@/pages/ProfilePage";
 import NotFound from "@/pages/NotFound";
 import ResetPasswordForm from "@/components/ResetPasswordForm";
 import FavoritesPage from './pages/FavoritesPage';
+import AboutPage from './pages/AboutPage';
 
 // Import Supabase client for auth check
 import { supabase } from "@/integrations/supabase/client";
@@ -116,7 +118,9 @@ const App = () => (
                 {/* Protected Routes with AppLayout */}
                 <Route path="/" element={
                   <ProtectedRoute>
-                    <AppLayout />
+                    <AppLayout>
+                      <Outlet />
+                    </AppLayout>
                   </ProtectedRoute>
                 }>
                   <Route path="/home" element={<HomePage />} />
@@ -130,10 +134,9 @@ const App = () => (
                   <Route path="/checkout" element={<CheckoutPage />} />
                   <Route path="/order-tracking" element={<OrderTrackingPage />} />
                   <Route path="/profile" element={<ProfilePage />} />
+                  <Route path="/favorites" element={<FavoritesPage />} />
+                  <Route path="/about" element={<AboutPage />} />
                 </Route>
-                
-                {/* Favorites Page */}
-                <Route path="/favorites" element={<FavoritesPage />} />
                 
                 {/* 404 Not Found */}
                 <Route path="*" element={<NotFound />} />
