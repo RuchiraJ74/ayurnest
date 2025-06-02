@@ -56,6 +56,13 @@ const ProfilePage: React.FC = () => {
     }
   }, [user]);
 
+  // Refresh counts when favorites change
+  useEffect(() => {
+    if (user) {
+      fetchOrderCount();
+    }
+  }, [favorites, user]);
+
   const fetchUserProfile = async () => {
     if (!user) return;
 
@@ -90,7 +97,7 @@ const ProfilePage: React.FC = () => {
         phoneNumber: data?.phone_number || '',
         deliveryAddress: data?.delivery_address || '',
         preferences: preferences,
-        avatar: (data as any)?.avatar_url || ''
+        avatar: data?.avatar_url || ''
       });
     } catch (error) {
       console.error('Error in fetchUserProfile:', error);
@@ -120,11 +127,13 @@ const ProfilePage: React.FC = () => {
   };
 
   const handleSave = async () => {
+    if (!user) return;
+
     try {
       const { error } = await supabase
         .from('profiles')
         .upsert({
-          id: user?.id,
+          id: user.id,
           full_name: profile.fullName,
           phone_number: profile.phoneNumber,
           delivery_address: profile.deliveryAddress,
@@ -142,7 +151,7 @@ const ProfilePage: React.FC = () => {
       }
 
       setIsEditing(false);
-      toast.success('Profile updated successfully!');
+      toast.success('Profile updated successfully! 🌟');
     } catch (error) {
       console.error('Error updating profile:', error);
       toast.error('Failed to update profile');
@@ -173,8 +182,6 @@ const ProfilePage: React.FC = () => {
 
     setUploading(true);
     try {
-      // For now, we'll use a placeholder URL since storage isn't set up
-      // In a real app, you'd upload to Supabase storage here
       const reader = new FileReader();
       reader.onload = (e) => {
         const result = e.target?.result as string;
@@ -182,7 +189,7 @@ const ProfilePage: React.FC = () => {
           ...prev,
           avatar: result
         }));
-        toast.success('Profile picture updated! Remember to save your changes.');
+        toast.success('Profile picture updated! Remember to save your changes. 📸');
       };
       reader.readAsDataURL(file);
     } catch (error) {

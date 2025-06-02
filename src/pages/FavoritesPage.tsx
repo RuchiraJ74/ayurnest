@@ -66,7 +66,7 @@ const FavoritesPage: React.FC = () => {
   const handleRemoveFromFavorites = async (productId: string) => {
     try {
       await toggleFavorite(productId);
-      toast.success('Removed from favorites');
+      toast.success('Removed from favorites 💔');
     } catch (error) {
       console.error('Error removing from favorites:', error);
       toast.error('Failed to remove from favorites');
@@ -82,7 +82,7 @@ const FavoritesPage: React.FC = () => {
       category: product.category,
       image: product.image
     });
-    toast.success(`${product.name} added to cart!`);
+    toast.success(`${product.name} added to cart! 🛒✨`);
   };
 
   if (!user) {
@@ -161,7 +161,7 @@ const FavoritesPage: React.FC = () => {
           >
             <Heart className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-gray-600 mb-2">No favorites yet</h2>
-            <p className="text-gray-500 mb-6">Start exploring and save products you love!</p>
+            <p className="text-gray-500 mb-6">Start exploring and save products you love! 💖</p>
             <Button onClick={() => navigate('/shop')} className="ayur-button">
               Browse Products
             </Button>
