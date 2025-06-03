@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthContext';
-import { useCart } from '@/context/CartContext';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -29,7 +28,6 @@ interface UserProfile {
 
 const ProfilePage: React.FC = () => {
   const { user, logout } = useAuth();
-  const { favorites } = useCart();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<UserProfile>({
     id: '',
@@ -48,21 +46,16 @@ const ProfilePage: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [orderCount, setOrderCount] = useState(0);
+  const [favoritesCount, setFavoritesCount] = useState(0);
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (user) {
       fetchUserProfile();
       fetchOrderCount();
+      fetchFavoritesCount();
     }
   }, [user]);
-
-  // Refresh counts when favorites change
-  useEffect(() => {
-    if (user) {
-      fetchOrderCount();
-    }
-  }, [favorites, user]);
 
   const fetchUserProfile = async () => {
     if (!user) return;
@@ -130,6 +123,26 @@ const ProfilePage: React.FC = () => {
       setOrderCount(count || 0);
     } catch (error) {
       console.error('Error in fetchOrderCount:', error);
+    }
+  };
+
+  const fetchFavoritesCount = async () => {
+    if (!user) return;
+
+    try {
+      const { count, error } = await supabase
+        .from('favorites')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error fetching favorites count:', error);
+        return;
+      }
+
+      setFavoritesCount(count || 0);
+    } catch (error) {
+      console.error('Error in fetchFavoritesCount:', error);
     }
   };
 
@@ -323,7 +336,7 @@ const ProfilePage: React.FC = () => {
                   </div>
                   <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
                     <Heart className="w-4 h-4" />
-                    <span>{favorites.length} Favorites</span>
+                    <span>{favoritesCount} Favorites</span>
                   </div>
                 </div>
               </CardContent>
