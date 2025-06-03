@@ -110,14 +110,17 @@ const ProductDetailPage: React.FC = () => {
   const handleAddToCart = () => {
     if (!product) return;
     
-    addItem({
-      id: product.id,
-      name: product.name,
-      description: product.description,
-      price: product.price,
-      category: product.category,
-      image: product.image
-    }, quantity);
+    // Create multiple items by calling addItem multiple times for the quantity
+    for (let i = 0; i < quantity; i++) {
+      addItem({
+        id: product.id,
+        name: product.name,
+        description: product.description,
+        price: product.price,
+        category: product.category,
+        image: product.image
+      });
+    }
     
     toast.success(`${product.name} added to cart! 🛒✨`);
   };
@@ -197,8 +200,8 @@ const ProductDetailPage: React.FC = () => {
             <div className="md:flex">
               <div className="md:w-1/2">
                 <img
-                  src={product.image}
-                  alt={product.name}
+                  src={product?.image}
+                  alt={product?.name}
                   className="w-full h-96 md:h-full object-cover"
                 />
               </div>
@@ -207,7 +210,7 @@ const ProductDetailPage: React.FC = () => {
                 <div className="flex items-start justify-between mb-4">
                   <div>
                     <h1 className="text-2xl font-playfair font-bold text-ayur-secondary mb-2">
-                      {product.name}
+                      {product?.name}
                     </h1>
                     <div className="flex items-center gap-2 mb-2">
                       <div className="flex items-center gap-1">
@@ -215,7 +218,7 @@ const ProductDetailPage: React.FC = () => {
                           <Star
                             key={i}
                             className={`w-4 h-4 ${
-                              i < Math.floor(product.rating || 0)
+                              i < Math.floor(product?.rating || 0)
                                 ? 'text-yellow-400 fill-current'
                                 : 'text-gray-300'
                             }`}
@@ -223,7 +226,7 @@ const ProductDetailPage: React.FC = () => {
                         ))}
                       </div>
                       <span className="text-sm text-gray-600">
-                        ({product.reviews} reviews)
+                        ({product?.reviews} reviews)
                       </span>
                     </div>
                   </div>
@@ -243,15 +246,15 @@ const ProductDetailPage: React.FC = () => {
                 </div>
 
                 <p className="text-3xl font-bold text-ayur-primary mb-4">
-                  ₹{product.price}
+                  ₹{product?.price}
                 </p>
 
-                <p className="text-gray-700 mb-6">{product.description}</p>
+                <p className="text-gray-700 mb-6">{product?.description}</p>
 
                 <div className="mb-6">
                   <h3 className="font-semibold text-ayur-secondary mb-2">Benefits:</h3>
                   <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
-                    {product.benefits?.map((benefit, index) => (
+                    {product?.benefits?.map((benefit, index) => (
                       <li key={index}>{benefit}</li>
                     ))}
                   </ul>
@@ -260,7 +263,7 @@ const ProductDetailPage: React.FC = () => {
                 <div className="mb-6">
                   <h3 className="font-semibold text-ayur-secondary mb-2">Ingredients:</h3>
                   <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
-                    {product.ingredients?.map((ingredient, index) => (
+                    {product?.ingredients?.map((ingredient, index) => (
                       <li key={index}>{ingredient}</li>
                     ))}
                   </ul>
@@ -268,7 +271,7 @@ const ProductDetailPage: React.FC = () => {
 
                 <div className="mb-6">
                   <h3 className="font-semibold text-ayur-secondary mb-2">Usage:</h3>
-                  <p className="text-sm text-gray-600">{product.usage}</p>
+                  <p className="text-sm text-gray-600">{product?.usage}</p>
                 </div>
 
                 <div className="flex items-center gap-4 mb-6">
@@ -295,7 +298,7 @@ const ProductDetailPage: React.FC = () => {
                   className="ayur-button w-full mb-4 text-lg py-3"
                 >
                   <ShoppingCart className="w-5 h-5 mr-2" />
-                  Add to Cart - ₹{product.price * quantity}
+                  Add to Cart - ₹{product ? product.price * quantity : 0}
                 </Button>
 
                 <div className="grid grid-cols-3 gap-4 pt-4 border-t">

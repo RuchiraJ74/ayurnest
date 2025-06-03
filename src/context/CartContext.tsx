@@ -4,7 +4,7 @@ import { useAuth } from './AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-interface Product {
+export interface Product {
   id: string;
   name: string;
   description: string;
@@ -26,6 +26,7 @@ interface CartContextType {
   updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
   toggleFavorite: (productId: string) => Promise<void>;
+  isFavorite: (productId: string) => boolean;
   totalPrice: number;
   totalItems: number;
 }
@@ -169,6 +170,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const isFavorite = (productId: string) => {
+    return favorites.includes(productId);
+  };
+
   const totalPrice = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -181,6 +186,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       updateQuantity,
       clearCart,
       toggleFavorite,
+      isFavorite,
       totalPrice,
       totalItems
     }}>
