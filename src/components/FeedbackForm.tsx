@@ -18,12 +18,25 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useAuth();
   const [submittedFeedback, setSubmittedFeedback] = useState<any[]>([]);
+  const [userProfile, setUserProfile] = useState<any>(null);
 
   useEffect(() => {
-    // Fetch existing feedback if user is logged in
-    const fetchFeedback = async () => {
+    // Fetch user profile and existing feedback if user is logged in
+    const fetchUserData = async () => {
       if (user) {
         try {
+          // Fetch user profile
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+          
+          if (profileData) {
+            setUserProfile(profileData);
+          }
+
+          // Fetch existing feedback
           const { data: session } = await supabase.auth.getSession();
           if (session?.session?.user) {
             const { data, error } = await supabase
@@ -39,12 +52,12 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit }) => {
             }
           }
         } catch (error) {
-          console.error("Error fetching feedback:", error);
+          console.error("Error fetching user data:", error);
         }
       }
     };
     
-    fetchFeedback();
+    fetchUserData();
   }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -66,10 +79,13 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit }) => {
     
     setIsSubmitting(true);
     
+    // Use profile full_name, email, or fallback to user email
+    const username = userProfile?.full_name || userProfile?.email || user.email || 'Anonymous User';
+    
     const feedbackData = {
       rating,
       message: message.trim() || "Great experience!",
-      username: user.username || user.email,
+      username: username,
       user_id: user.id
     };
     
