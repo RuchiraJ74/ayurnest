@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Heart, ShoppingCart, Star, Truck, Shield, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Heart, ShoppingCart, Star, Truck, Shield, RotateCcw, Plus, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/CartContext';
 import { toast } from 'sonner';
@@ -119,7 +119,7 @@ const ProductDetailPage: React.FC = () => {
       image: product.image
     }, quantity);
     
-    toast.success(`${product.name} added to cart!`);
+    toast.success(`${product.name} added to cart! 🛒✨`);
   };
 
   const handleToggleFavorite = async () => {
@@ -128,6 +128,7 @@ const ProductDetailPage: React.FC = () => {
     try {
       await toggleFavorite(product.id);
       setIsInFavorites(!isInFavorites);
+      toast.success(isInFavorites ? 'Removed from favorites 💔' : 'Added to favorites 💖');
     } catch (error) {
       console.error('Error toggling favorite:', error);
       toast.error('Failed to update favorites');
@@ -275,23 +276,23 @@ const ProductDetailPage: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50"
+                      className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors"
                     >
-                      -
+                      <Minus className="w-4 h-4" />
                     </button>
-                    <span className="w-8 text-center">{quantity}</span>
+                    <span className="w-8 text-center font-medium">{quantity}</span>
                     <button
                       onClick={() => setQuantity(quantity + 1)}
-                      className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50"
+                      className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors"
                     >
-                      +
+                      <Plus className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
 
                 <Button
                   onClick={handleAddToCart}
-                  className="ayur-button w-full mb-4"
+                  className="ayur-button w-full mb-4 text-lg py-3"
                 >
                   <ShoppingCart className="w-5 h-5 mr-2" />
                   Add to Cart - ₹{product.price * quantity}
