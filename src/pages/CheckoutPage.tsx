@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, CreditCard, MapPin, User, Phone, Mail, CheckCircle } from 'lucide-react';
+import { ArrowLeft, CreditCard, MapPin, User, Phone, Mail, CheckCircle, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,6 +18,7 @@ const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
   
   const [orderPlaced, setOrderPlaced] = useState(false);
+  const [orderId, setOrderId] = useState('');
   const [loading, setLoading] = useState(false);
   const [deliveryInfo, setDeliveryInfo] = useState({
     fullName: '',
@@ -27,7 +28,6 @@ const CheckoutPage: React.FC = () => {
     city: '',
     zipCode: ''
   });
-  const [paymentMethod, setPaymentMethod] = useState('googlepay');
 
   const handleInputChange = (field: string, value: string) => {
     setDeliveryInfo(prev => ({
@@ -61,10 +61,12 @@ const CheckoutPage: React.FC = () => {
         user_id: user.id,
         total_amount: totalPrice,
         delivery_address: `${deliveryInfo.address}, ${deliveryInfo.city} ${deliveryInfo.zipCode}`.trim(),
-        payment_method: paymentMethod === 'googlepay' ? 'Google Pay' : 'PhonePe',
-        status: 'confirmed',
+        payment_method: 'Pending Payment',
+        status: 'pending_payment',
         order_date: new Date().toISOString()
       };
+
+      console.log('Creating order with data:', orderData);
 
       const { data: order, error: orderError } = await supabase
         .from('orders')
@@ -74,11 +76,13 @@ const CheckoutPage: React.FC = () => {
 
       if (orderError) {
         console.error('Order creation error:', orderError);
-        toast.error('Failed to place order');
+        toast.error('Failed to place order: ' + orderError.message);
         return;
       }
 
-      // Create order items
+      console.log('Order created successfully:', order);
+
+      // Create order items with better error handling
       const orderItems = items.map(item => ({
         order_id: order.id,
         product_id: item.product.id,
@@ -87,17 +91,24 @@ const CheckoutPage: React.FC = () => {
         price: item.product.price
       }));
 
+      console.log('Creating order items:', orderItems);
+
       const { error: itemsError } = await supabase
         .from('order_items')
         .insert(orderItems);
 
       if (itemsError) {
         console.error('Order items error:', itemsError);
-        toast.error('Failed to save order items');
+        // Try to clean up the order if items failed
+        await supabase.from('orders').delete().eq('id', order.id);
+        toast.error('Failed to save order items: ' + itemsError.message);
         return;
       }
 
+      console.log('Order items created successfully');
+
       clearCart();
+      setOrderId(order.id);
       setOrderPlaced(true);
       toast.success('Order placed successfully! 🎉');
 
@@ -107,6 +118,17 @@ const CheckoutPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePayment = (method: 'googlepay' | 'phonepe') => {
+    // Simulate payment processing
+    toast.success(`Payment via ${method === 'googlepay' ? 'Google Pay' : 'PhonePe'} initiated! 💳`);
+    
+    // In a real app, this would redirect to actual payment gateway
+    setTimeout(() => {
+      toast.success('Payment completed successfully! 🎉');
+      navigate('/tracking');
+    }, 2000);
   };
 
   if (orderPlaced) {
@@ -133,17 +155,48 @@ const CheckoutPage: React.FC = () => {
               </div>
               
               <h1 className="text-3xl font-playfair font-bold text-ayur-secondary mb-4">
-                Order Placed Successfully! 🎉
+                Order Confirmed! 🎉
               </h1>
               
               <p className="text-gray-600 mb-6">
-                Your order has been placed today, {formattedDate}
+                Your order has been placed on {formattedDate}
               </p>
               
               <div className="bg-ayur-light rounded-lg p-4 mb-6">
                 <h3 className="font-semibold text-ayur-secondary mb-2">Order Summary</h3>
+                <p className="text-gray-600">Order ID: #{orderId}</p>
                 <p className="text-gray-600">Total Items: {items.length}</p>
                 <p className="text-lg font-bold text-ayur-primary">Total: ₹{totalPrice.toFixed(2)}</p>
+              </div>
+
+              {/* Payment Options */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-ayur-secondary mb-4">Complete Your Payment</h3>
+                <div className="grid grid-cols-1 gap-3">
+                  <Button
+                    onClick={() => handlePayment('googlepay')}
+                    variant="outline"
+                    className="w-full p-4 h-auto border-2 hover:border-ayur-primary transition-colors"
+                  >
+                    <div className="flex items-center justify-center gap-3">
+                      <PaymentIcon type="googlepay" className="w-8 h-8" />
+                      <span className="font-medium">Pay with Google Pay</span>
+                      <ExternalLink className="w-4 h-4" />
+                    </div>
+                  </Button>
+                  
+                  <Button
+                    onClick={() => handlePayment('phonepe')}
+                    variant="outline"
+                    className="w-full p-4 h-auto border-2 hover:border-ayur-primary transition-colors"
+                  >
+                    <div className="flex items-center justify-center gap-3">
+                      <PaymentIcon type="phonepe" className="w-8 h-8" />
+                      <span className="font-medium">Pay with PhonePe</span>
+                      <ExternalLink className="w-4 h-4" />
+                    </div>
+                  </Button>
+                </div>
               </div>
               
               <div className="space-y-3">
@@ -249,7 +302,7 @@ const CheckoutPage: React.FC = () => {
               </CardContent>
             </Card>
 
-            {/* Delivery & Payment */}
+            {/* Delivery Information */}
             <div className="space-y-6">
               <Card>
                 <CardHeader>
@@ -311,50 +364,6 @@ const CheckoutPage: React.FC = () => {
                       value={deliveryInfo.zipCode}
                       onChange={(e) => handleInputChange('zipCode', e.target.value)}
                     />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <CreditCard className="w-5 h-5" />
-                    Payment Method
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="radio"
-                        id="googlepay"
-                        name="payment"
-                        value="googlepay"
-                        checked={paymentMethod === 'googlepay'}
-                        onChange={(e) => setPaymentMethod(e.target.value)}
-                        className="text-ayur-primary"
-                      />
-                      <label htmlFor="googlepay" className="flex items-center gap-3 cursor-pointer">
-                        <PaymentIcon type="googlepay" className="w-8 h-8" />
-                        <span>Google Pay</span>
-                      </label>
-                    </div>
-                    
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="radio"
-                        id="phonepe"
-                        name="payment"
-                        value="phonepe"
-                        checked={paymentMethod === 'phonepe'}
-                        onChange={(e) => setPaymentMethod(e.target.value)}
-                        className="text-ayur-primary"
-                      />
-                      <label htmlFor="phonepe" className="flex items-center gap-3 cursor-pointer">
-                        <PaymentIcon type="phonepe" className="w-8 h-8" />
-                        <span>PhonePe</span>
-                      </label>
-                    </div>
                   </div>
                 </CardContent>
               </Card>

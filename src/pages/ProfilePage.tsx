@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { User, Mail, Phone, MapPin, Settings, Heart, Package, LogOut, Edit3, Camera, ArrowLeft } from 'lucide-react';
@@ -136,23 +137,27 @@ const ProfilePage: React.FC = () => {
     if (!user) return;
 
     try {
+      const updateData = {
+        id: user.id,
+        full_name: profile.fullName || null,
+        phone_number: profile.phoneNumber || null,
+        delivery_address: profile.deliveryAddress || null,
+        preferences: profile.preferences,
+        email: profile.email,
+        avatar_url: profile.avatar || null
+      };
+
+      console.log('Updating profile with data:', updateData);
+
       const { error } = await supabase
         .from('profiles')
-        .upsert({
-          id: user.id,
-          full_name: profile.fullName,
-          phone_number: profile.phoneNumber,
-          delivery_address: profile.deliveryAddress,
-          preferences: profile.preferences,
-          email: profile.email,
-          avatar_url: profile.avatar
-        }, {
+        .upsert(updateData, {
           onConflict: 'id'
         });
 
       if (error) {
         console.error('Error updating profile:', error);
-        toast.error('Failed to update profile');
+        toast.error('Failed to update profile: ' + error.message);
         return;
       }
 

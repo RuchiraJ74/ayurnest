@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 
 const CartPage: React.FC = () => {
-  const { items, updateQuantity, removeItem, totalPrice, clearCart } = useCart();
+  const { items, updateQuantity, removeItem, totalPrice } = useCart();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -87,7 +87,7 @@ const CartPage: React.FC = () => {
                     
                     <div className="flex justify-between items-center">
                       <span className="font-medium text-ayur-primary">
-                        ${(item.product.price * item.quantity).toFixed(2)}
+                        ₹{(item.product.price * item.quantity).toFixed(2)}
                       </span>
                       
                       <div className="flex items-center gap-3">
@@ -141,23 +141,23 @@ const CartPage: React.FC = () => {
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Subtotal</span>
-                  <span>${totalPrice.toFixed(2)}</span>
+                  <span>₹{totalPrice.toFixed(2)}</span>
                 </div>
                 
                 <div className="flex justify-between">
                   <span className="text-gray-600">Shipping</span>
-                  <span>$5.99</span>
+                  <span>₹50.00</span>
                 </div>
                 
                 <div className="flex justify-between">
                   <span className="text-gray-600">Tax</span>
-                  <span>${(totalPrice * 0.07).toFixed(2)}</span>
+                  <span>₹{(totalPrice * 0.05).toFixed(2)}</span>
                 </div>
                 
                 <div className="border-t pt-2 mt-2 flex justify-between font-bold">
                   <span>Total</span>
                   <span className="text-ayur-primary">
-                    ${(totalPrice + 5.99 + totalPrice * 0.07).toFixed(2)}
+                    ₹{(totalPrice + 50 + totalPrice * 0.05).toFixed(2)}
                   </span>
                 </div>
               </div>
