@@ -46,14 +46,12 @@ const ProfilePage: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [orderCount, setOrderCount] = useState(0);
-  const [favoritesCount, setFavoritesCount] = useState(0);
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (user) {
       fetchUserProfile();
       fetchOrderCount();
-      fetchFavoritesCount();
     }
   }, [user]);
 
@@ -334,10 +332,6 @@ const ProfilePage: React.FC = () => {
                     <Package className="w-4 h-4" />
                     <span>{orderCount} Orders</span>
                   </div>
-                  <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
-                    <Heart className="w-4 h-4" />
-                    <span>{favoritesCount} Favorites</span>
-                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -433,11 +427,36 @@ const ProfilePage: React.FC = () => {
           </motion.div>
         </div>
 
-        {/* Logout Button */}
+        {/* Feedback Button */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.5 }}
+          className="mt-6"
+        >
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-ayur-secondary mb-1">Share Your Experience</h3>
+                  <p className="text-gray-600 text-sm">Help us improve by sharing your feedback</p>
+                </div>
+                <Button
+                  onClick={() => navigate('/feedback')}
+                  className="ayur-button"
+                >
+                  💬 Give Feedback
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Logout Button */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4, duration: 0.5 }}
           className="mt-6"
         >
           <Card>

@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, ShoppingBag, Heart, User, Info } from 'lucide-react';
+import { Home, ShoppingBag, Truck, User, Info } from 'lucide-react';
 
 const Navigation: React.FC = () => {
   const navigate = useNavigate();
@@ -10,7 +10,7 @@ const Navigation: React.FC = () => {
   const navItems = [
     { icon: Home, label: 'Home', path: '/home' },
     { icon: ShoppingBag, label: 'Shop', path: '/shop' },
-    { icon: Heart, label: 'Favorites', path: '/favorites' },
+    { icon: Truck, label: 'Track', path: '/track-order' },
     { icon: Info, label: 'About', path: '/about' },
     { icon: User, label: 'Profile', path: '/profile' },
   ];

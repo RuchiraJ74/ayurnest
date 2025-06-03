@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Heart, ShoppingCart, Star, Truck, Shield, RotateCcw, Plus, Minus } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, Star, Truck, Shield, RotateCcw, Plus, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/CartContext';
 import { toast } from 'sonner';
@@ -26,17 +26,15 @@ interface Product {
 const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { addItem, toggleFavorite, isFavorite } = useCart();
+  const { addItem } = useCart();
   
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
-  const [isInFavorites, setIsInFavorites] = useState(false);
 
   useEffect(() => {
     if (id) {
       fetchProduct();
-      checkIfFavorite();
     }
   }, [id]);
 
@@ -101,12 +99,6 @@ const ProductDetailPage: React.FC = () => {
     }
   };
 
-  const checkIfFavorite = () => {
-    if (id) {
-      setIsInFavorites(isFavorite(id));
-    }
-  };
-
   const handleAddToCart = () => {
     if (!product) return;
     
@@ -123,19 +115,6 @@ const ProductDetailPage: React.FC = () => {
     }
     
     toast.success(`${product.name} added to cart! 🛒✨`);
-  };
-
-  const handleToggleFavorite = async () => {
-    if (!product) return;
-
-    try {
-      await toggleFavorite(product.id);
-      setIsInFavorites(!isInFavorites);
-      toast.success(isInFavorites ? 'Removed from favorites 💔' : 'Added to favorites 💖');
-    } catch (error) {
-      console.error('Error toggling favorite:', error);
-      toast.error('Failed to update favorites');
-    }
   };
 
   if (loading) {
@@ -207,42 +186,27 @@ const ProductDetailPage: React.FC = () => {
               </div>
               
               <div className="md:w-1/2 p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h1 className="text-2xl font-playfair font-bold text-ayur-secondary mb-2">
-                      {product?.name}
-                    </h1>
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="flex items-center gap-1">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`w-4 h-4 ${
-                              i < Math.floor(product?.rating || 0)
-                                ? 'text-yellow-400 fill-current'
-                                : 'text-gray-300'
-                            }`}
-                          />
-                        ))}
-                      </div>
-                      <span className="text-sm text-gray-600">
-                        ({product?.reviews} reviews)
-                      </span>
+                <div className="mb-4">
+                  <h1 className="text-2xl font-playfair font-bold text-ayur-secondary mb-2">
+                    {product?.name}
+                  </h1>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-1">
+                      {[...Array(5)].map((_, i) => (
+                        <Star
+                          key={i}
+                          className={`w-4 h-4 ${
+                            i < Math.floor(product?.rating || 0)
+                              ? 'text-yellow-400 fill-current'
+                              : 'text-gray-300'
+                          }`}
+                        />
+                      ))}
                     </div>
+                    <span className="text-sm text-gray-600">
+                      ({product?.reviews} reviews)
+                    </span>
                   </div>
-                  
-                  <button
-                    onClick={handleToggleFavorite}
-                    className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-                  >
-                    <Heart
-                      className={`w-6 h-6 ${
-                        isInFavorites
-                          ? 'text-red-500 fill-current'
-                          : 'text-gray-400'
-                      }`}
-                    />
-                  </button>
                 </div>
 
                 <p className="text-3xl font-bold text-ayur-primary mb-4">

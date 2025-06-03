@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { products, categories, getProductsByCategory } from '@/data/productData';
-import { Search, ShoppingBag, Filter, X, Heart, ArrowLeft } from 'lucide-react';
+import { Search, ShoppingBag, Filter, X, ArrowLeft, ShoppingCart } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
@@ -12,15 +12,13 @@ import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 
 const ShopPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState('All Products');
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 50]);
-  const [favoriteProducts, setFavoriteProducts] = useState<string[]>([]);
-  const { totalItems } = useCart();
+  const { totalItems, addItem } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -34,33 +32,6 @@ const ShopPage: React.FC = () => {
     }
   }, [location.search]);
   
-  // Load user's favorite products
-  useEffect(() => {
-    const fetchFavorites = async () => {
-      if (user) {
-        try {
-          const { data: session } = await supabase.auth.getSession();
-          if (session?.session?.user) {
-            const { data, error } = await supabase
-              .from('favorites')
-              .select('product_id')
-              .eq('user_id', session.session.user.id);
-              
-            if (error) {
-              console.error("Error fetching favorites:", error);
-            } else if (data) {
-              setFavoriteProducts(data.map(item => item.product_id));
-            }
-          }
-        } catch (error) {
-          console.error("Error fetching favorites:", error);
-        }
-      }
-    };
-    
-    fetchFavorites();
-  }, [user]);
-  
   const filteredProducts = getProductsByCategory(selectedCategory).filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          product.description.toLowerCase().includes(searchTerm.toLowerCase());
@@ -72,55 +43,19 @@ const ShopPage: React.FC = () => {
     setPriceRange([min, max]);
   };
 
-  const isFavorite = (productId: string) => favoriteProducts.includes(productId);
-
-  const handleFavoriteToggle = async (e: React.MouseEvent, productId: string) => {
+  const handleAddToCart = (e: React.MouseEvent, product: any) => {
     e.stopPropagation(); // Prevent navigating to product detail
     
-    if (!user) {
-      toast("Please log in", { 
-        description: "You need to log in to add products to favorites"
-      });
-      navigate('/login');
-      return;
-    }
+    addItem({
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      category: product.category,
+      image: product.image
+    });
     
-    try {
-      const { data: session } = await supabase.auth.getSession();
-      if (session?.session?.user) {
-        if (isFavorite(productId)) {
-          // Remove from favorites
-          await supabase
-            .from('favorites')
-            .delete()
-            .eq('user_id', session.session.user.id)
-            .eq('product_id', productId);
-          
-          setFavoriteProducts(prev => prev.filter(id => id !== productId));
-          toast("Removed from favorites", {
-            description: "Item removed from your favorites"
-          });
-        } else {
-          // Add to favorites
-          await supabase
-            .from('favorites')
-            .insert({
-              user_id: session.session.user.id,
-              product_id: productId
-            });
-          
-          setFavoriteProducts(prev => [...prev, productId]);
-          toast("Added to favorites", {
-            description: "Item added to your favorites"
-          });
-        }
-      }
-    } catch (error) {
-      console.error("Error updating favorites:", error);
-      toast("Error", {
-        description: "Failed to update favorites. Please try again."
-      });
-    }
+    toast.success(`${product.name} added to cart! 🛒✨`);
   };
   
   const handleSearch = (e: React.FormEvent) => {
@@ -300,11 +235,11 @@ const ShopPage: React.FC = () => {
                   />
                   <Badge className="absolute top-2 right-2 bg-ayur-primary">₹{product.price.toFixed(2)}</Badge>
                   <button 
-                    className={`absolute top-2 left-2 p-1.5 rounded-full ${isFavorite(product.id) ? 'bg-red-500 text-white' : 'bg-white/80 text-gray-500'}`}
-                    onClick={(e) => handleFavoriteToggle(e, product.id)}
-                    aria-label={isFavorite(product.id) ? "Remove from favorites" : "Add to favorites"}
+                    className="absolute top-2 left-2 p-1.5 rounded-full bg-white/90 text-ayur-primary hover:bg-white transition-colors"
+                    onClick={(e) => handleAddToCart(e, product)}
+                    aria-label="Add to cart"
                   >
-                    <Heart size={16} fill={isFavorite(product.id) ? "white" : "none"} />
+                    <ShoppingCart size={16} />
                   </button>
                 </div>
                 <div className="p-3" onClick={() => navigate(`/shop/${product.id}`)}>

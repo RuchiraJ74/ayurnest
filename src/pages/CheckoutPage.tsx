@@ -1,7 +1,8 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, MapPin, User, Mail, Phone, CreditCard, Check } from 'lucide-react';
+import { ArrowLeft, MapPin, User, Mail, Phone, CreditCard, Check, Calendar, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,6 +19,8 @@ const CheckoutPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orderId, setOrderId] = useState<string>('');
+  const [orderDate, setOrderDate] = useState<string>('');
+  const [estimatedDelivery, setEstimatedDelivery] = useState<string>('');
   const [selectedPayment, setSelectedPayment] = useState<string>('');
   
   const [formData, setFormData] = useState({
@@ -53,6 +56,9 @@ const CheckoutPage: React.FC = () => {
     setLoading(true);
     try {
       const totalWithExtras = totalPrice + 50 + (totalPrice * 0.05);
+      const orderDate = new Date().toISOString();
+      const deliveryDate = new Date();
+      deliveryDate.setDate(deliveryDate.getDate() + 5); // 5 days from now
 
       // Create the order
       const { data: orderData, error: orderError } = await supabase
@@ -62,7 +68,8 @@ const CheckoutPage: React.FC = () => {
           total_amount: totalWithExtras,
           delivery_address: formData.address,
           payment_method: formData.paymentMethod,
-          status: 'pending'
+          status: 'processing',
+          order_date: orderDate
         })
         .select()
         .single();
@@ -93,6 +100,8 @@ const CheckoutPage: React.FC = () => {
       }
 
       setOrderId(orderData.id);
+      setOrderDate(orderDate);
+      setEstimatedDelivery(deliveryDate.toISOString());
       setOrderPlaced(true);
       clearCart();
       toast.success('Order placed successfully! 🎉');
@@ -111,8 +120,16 @@ const CheckoutPage: React.FC = () => {
     
     setTimeout(() => {
       toast.success('Payment completed successfully! 🎉');
-      navigate('/home');
+      navigate('/track-order');
     }, 2000);
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    });
   };
 
   if (orderPlaced) {
@@ -127,9 +144,42 @@ const CheckoutPage: React.FC = () => {
             <div className="mx-auto bg-green-100 rounded-full w-16 h-16 flex items-center justify-center mb-4">
               <Check size={32} className="text-green-600" />
             </div>
-            <h1 className="text-2xl font-bold text-ayur-secondary mb-2">Order Confirmed!</h1>
-            <p className="text-gray-600 mb-4">Order ID: {orderId}</p>
-            <p className="text-gray-600 mb-8">Your order has been placed successfully and will be delivered soon.</p>
+            <h1 className="text-2xl font-bold text-ayur-secondary mb-2">Order Confirmed! 🎉</h1>
+            <p className="text-gray-600 mb-2">Order ID: <span className="font-mono font-semibold">{orderId}</span></p>
+            
+            <div className="bg-white rounded-lg p-6 mb-6 text-left">
+              <h3 className="font-semibold mb-4 text-center">📦 Order Details</h3>
+              
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
+                  <Calendar className="w-5 h-5 text-green-600" />
+                  <div>
+                    <p className="font-medium text-green-800">Order Confirmed</p>
+                    <p className="text-sm text-green-600">{formatDate(orderDate)}</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+                  <Truck className="w-5 h-5 text-blue-600" />
+                  <div>
+                    <p className="font-medium text-blue-800">Expected Delivery</p>
+                    <p className="text-sm text-blue-600">{formatDate(estimatedDelivery)}</p>
+                  </div>
+                </div>
+                
+                <div className="border-t pt-3">
+                  <p className="text-sm text-gray-600 mb-2">
+                    <strong>Items:</strong> {items.length} product{items.length > 1 ? 's' : ''}
+                  </p>
+                  <p className="text-sm text-gray-600 mb-2">
+                    <strong>Total:</strong> ₹{(totalPrice + 50 + totalPrice * 0.05).toFixed(2)}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    <strong>Status:</strong> <span className="text-blue-600 font-medium">Processing</span>
+                  </p>
+                </div>
+              </div>
+            </div>
             
             <div className="bg-white rounded-lg p-6 mb-6">
               <h3 className="font-semibold mb-4">Choose Payment Method</h3>
@@ -153,7 +203,7 @@ const CheckoutPage: React.FC = () => {
                 <button
                   onClick={() => {
                     toast.success('Cash on Delivery confirmed! 💰');
-                    navigate('/home');
+                    navigate('/track-order');
                   }}
                   className="w-full flex items-center justify-center gap-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors"
                 >
@@ -163,12 +213,21 @@ const CheckoutPage: React.FC = () => {
               </div>
             </div>
             
-            <Button
-              onClick={() => navigate('/home')}
-              className="ayur-button w-full"
-            >
-              Continue Shopping
-            </Button>
+            <div className="space-y-3">
+              <Button
+                onClick={() => navigate('/track-order')}
+                className="ayur-button w-full"
+              >
+                🚚 Track My Order
+              </Button>
+              <Button
+                onClick={() => navigate('/home')}
+                variant="outline"
+                className="w-full"
+              >
+                Continue Shopping
+              </Button>
+            </div>
           </motion.div>
         </div>
       </div>
