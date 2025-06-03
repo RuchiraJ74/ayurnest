@@ -13,13 +13,7 @@ const DoshaResult: React.FC = () => {
   const [dosha, setDosha] = useState<string>('tridosha');
   
   useEffect(() => {
-    // Try to get dosha from user object first
-    if (user?.dosha) {
-      setDosha(user.dosha);
-      return;
-    }
-    
-    // If not available in user object, try to get from supabase or local storage
+    // Try to get dosha from user profile first
     const fetchUserDosha = async () => {
       // First try to get from Supabase if user is logged in
       if (user?.id) {

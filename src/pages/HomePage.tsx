@@ -12,6 +12,7 @@ const HomePage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const { user } = useAuth();
   const [profile, setProfile] = useState<any>(null);
+  const [userDosha, setUserDosha] = useState<string>('tridosha');
   const navigate = useNavigate();
   
   useEffect(() => {
@@ -28,6 +29,13 @@ const HomePage = () => {
             console.error("Error fetching profile:", error);
           } else if (data) {
             setProfile(data);
+            // Get dosha from profile preferences
+            if (data.preferences && typeof data.preferences === 'object' && data.preferences !== null) {
+              const preferences = data.preferences as any;
+              if (preferences.dosha) {
+                setUserDosha(preferences.dosha);
+              }
+            }
           }
         } catch (error) {
           console.error("Error fetching profile:", error);
@@ -36,6 +44,12 @@ const HomePage = () => {
     };
     
     fetchUserProfile();
+    
+    // Also check localStorage for dosha
+    const savedDosha = localStorage.getItem('ayurnest_dosha');
+    if (savedDosha) {
+      setUserDosha(savedDosha);
+    }
   }, [user]);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -54,7 +68,8 @@ const HomePage = () => {
 
   const getUserName = () => {
     if (profile?.full_name) return profile.full_name.split(' ')[0];
-    if (user?.username) return user.username;
+    if (user?.user_metadata?.full_name) return user.user_metadata.full_name.split(' ')[0];
+    if (user?.email) return user.email.split('@')[0];
     return "there";
   };
 

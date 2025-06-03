@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, User, Mail, Lock, ArrowRight, Sparkles } from 'lucide-react';
@@ -176,6 +175,17 @@ const AuthForms: React.FC<AuthFormsProps> = ({ isLogin, onToggle }) => {
       </motion.div>
     </div>
   );
+};
+
+// Create separate components for App.tsx to import
+export const LoginForm: React.FC = () => {
+  const [isLogin, setIsLogin] = useState(true);
+  return <AuthForms isLogin={isLogin} onToggle={() => setIsLogin(!isLogin)} />;
+};
+
+export const SignupForm: React.FC = () => {
+  const [isLogin, setIsLogin] = useState(false);
+  return <AuthForms isLogin={isLogin} onToggle={() => setIsLogin(!isLogin)} />;
 };
 
 export default AuthForms;

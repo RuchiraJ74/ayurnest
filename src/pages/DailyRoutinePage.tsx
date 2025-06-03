@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { getRoutineByDosha } from '@/data/routineData';
 import { Calendar, Clock, Check, ChevronDown, ChevronUp } from 'lucide-react';
@@ -7,13 +6,47 @@ import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { motion } from 'framer-motion';
+import { supabase } from '@/integrations/supabase/client';
 
 const DailyRoutinePage: React.FC = () => {
   const { user } = useAuth();
-  const dosha = user?.dosha || 'tridosha';
-  const routine = getRoutineByDosha(dosha);
-  
+  const [dosha, setDosha] = useState<string>('tridosha');
   const [selectedRoutine, setSelectedRoutine] = useState<'morning' | 'afternoon' | 'evening'>('morning');
+  
+  useEffect(() => {
+    const fetchUserDosha = async () => {
+      // First try to get from Supabase if user is logged in
+      if (user?.id) {
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('preferences')
+            .eq('id', user.id)
+            .single();
+            
+          if (data?.preferences && typeof data.preferences === 'object' && data.preferences !== null) {
+            const preferences = data.preferences as any;
+            if (preferences.dosha) {
+              setDosha(preferences.dosha);
+              return;
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching dosha from profile:", error);
+        }
+      }
+      
+      // Fall back to local storage if not found in Supabase
+      const savedDosha = localStorage.getItem('ayurnest_dosha');
+      if (savedDosha) {
+        setDosha(savedDosha);
+      }
+    };
+    
+    fetchUserDosha();
+  }, [user]);
+  
+  const routine = getRoutineByDosha(dosha);
   
   return (
     <div className="max-w-md mx-auto p-4 pb-20">

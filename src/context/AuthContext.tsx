@@ -11,6 +11,9 @@ interface AuthContextType {
   signup: (email: string, password: string, fullName?: string) => Promise<{ user: User | null; error: any }>;
   logout: () => Promise<void>;
   loginAsDemo: () => Promise<void>;
+  resetPassword: (email: string) => Promise<{ error: any }>;
+  submitSupportMessage: (subject: string, message: string) => Promise<void>;
+  updateUserDosha: (dosha: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -88,12 +91,63 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const resetPassword = async (email: string) => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      return { error };
+    } catch (error) {
+      console.error('Reset password error:', error);
+      return { error };
+    }
+  };
+
+  const submitSupportMessage = async (subject: string, message: string) => {
+    if (!user) throw new Error('User not authenticated');
+    
+    try {
+      const { error } = await supabase
+        .from('support_requests')
+        .insert({
+          user_id: user.id,
+          issue_type: subject,
+          message: message,
+          status: 'open'
+        });
+      
+      if (error) throw error;
+    } catch (error) {
+      console.error('Support message error:', error);
+      throw error;
+    }
+  };
+
+  const updateUserDosha = async (dosha: string) => {
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({
+          id: user.id,
+          preferences: { dosha: dosha }
+        });
+      
+      if (error) throw error;
+      
+      // Also save to localStorage
+      localStorage.setItem('ayurnest_dosha', dosha);
+    } catch (error) {
+      console.error('Update dosha error:', error);
+      // Still save to localStorage as fallback
+      localStorage.setItem('ayurnest_dosha', dosha);
+    }
+  };
+
   const loginAsDemo = async () => {
     // Create a demo user object
     const demoUser = {
       id: 'demo-user-id',
       email: 'demo@ayurnest.com',
-      username: 'demo_user',
       user_metadata: {
         full_name: 'Demo User'
       },
@@ -129,7 +183,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     login,
     signup,
     logout,
-    loginAsDemo
+    loginAsDemo,
+    resetPassword,
+    submitSupportMessage,
+    updateUserDosha
   };
 
   return (

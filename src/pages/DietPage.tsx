@@ -1,15 +1,49 @@
-
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { doshaProfiles } from '@/data/doshaData';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { Check, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { supabase } from '@/integrations/supabase/client';
 
 const DietPage: React.FC = () => {
   const { user } = useAuth();
-  const dosha = user?.dosha || 'tridosha';
+  const [dosha, setDosha] = useState<string>('tridosha');
+  
+  useEffect(() => {
+    const fetchUserDosha = async () => {
+      // First try to get from Supabase if user is logged in
+      if (user?.id) {
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('preferences')
+            .eq('id', user.id)
+            .single();
+            
+          if (data?.preferences && typeof data.preferences === 'object' && data.preferences !== null) {
+            const preferences = data.preferences as any;
+            if (preferences.dosha) {
+              setDosha(preferences.dosha);
+              return;
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching dosha from profile:", error);
+        }
+      }
+      
+      // Fall back to local storage if not found in Supabase
+      const savedDosha = localStorage.getItem('ayurnest_dosha');
+      if (savedDosha) {
+        setDosha(savedDosha);
+      }
+    };
+    
+    fetchUserDosha();
+  }, [user]);
+  
   const doshaProfile = doshaProfiles[dosha as keyof typeof doshaProfiles];
   
   return (

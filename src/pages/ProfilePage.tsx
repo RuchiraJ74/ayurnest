@@ -13,7 +13,7 @@ import { useNavigate } from 'react-router-dom';
 
 interface UserProfile {
   id: string;
-  username: string;
+  displayName: string;
   email: string;
   fullName?: string;
   phoneNumber?: string;
@@ -32,7 +32,7 @@ const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<UserProfile>({
     id: '',
-    username: '',
+    displayName: '',
     email: '',
     fullName: '',
     phoneNumber: '',
@@ -89,9 +89,15 @@ const ProfilePage: React.FC = () => {
         };
       }
 
+      // Get display name from various sources
+      const displayName = data?.full_name || 
+                          user?.user_metadata?.full_name || 
+                          user?.email?.split('@')[0] || 
+                          'User';
+
       setProfile({
         id: user.id,
-        username: user.username || user.email?.split('@')[0] || '',
+        displayName: displayName,
         email: user.email || '',
         fullName: data?.full_name || '',
         phoneNumber: data?.phone_number || '',
@@ -285,7 +291,7 @@ const ProfilePage: React.FC = () => {
                   <Avatar className="w-24 h-24 mx-auto">
                     <AvatarImage src={profile.avatar} alt="Profile" />
                     <AvatarFallback className="bg-ayur-primary/20 text-ayur-primary text-2xl">
-                      {profile.fullName ? profile.fullName.charAt(0) : profile.username.charAt(0)}
+                      {profile.fullName ? profile.fullName.charAt(0) : profile.displayName.charAt(0)}
                     </AvatarFallback>
                   </Avatar>
                   {isEditing && (
@@ -302,7 +308,7 @@ const ProfilePage: React.FC = () => {
                   )}
                 </div>
                 <h3 className="text-xl font-semibold text-ayur-secondary mb-1">
-                  {profile.fullName || profile.username}
+                  {profile.fullName || profile.displayName}
                 </h3>
                 <p className="text-gray-600 text-sm mb-4">{profile.email}</p>
                 <div className="space-y-2">
