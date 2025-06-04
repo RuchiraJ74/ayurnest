@@ -1,7 +1,8 @@
+
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'sonner';
-import { QueryClient } from 'react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import AppLayout from '@/layouts/AppLayout';
 import Index from '@/pages/Index';
@@ -10,6 +11,7 @@ import ShopPage from '@/pages/ShopPage';
 import ProductDetailPage from '@/pages/ProductDetailPage';
 import CartPage from '@/pages/CartPage';
 import CheckoutPage from '@/pages/CheckoutPage';
+import OrderTrackingPage from '@/pages/OrderTrackingPage';
 import ProfilePage from '@/pages/ProfilePage';
 import AboutPage from '@/pages/AboutPage';
 import RemediesPage from '@/pages/RemediesPage';
@@ -19,13 +21,14 @@ import DietPage from '@/pages/DietPage';
 import NotFound from '@/pages/NotFound';
 import { AuthProvider } from '@/context/AuthContext';
 import { CartProvider } from '@/context/CartContext';
-
 import FeedbackPage from '@/pages/FeedbackPage';
+
+const queryClient = new QueryClient();
 
 function App() {
   return (
     <BrowserRouter>
-      <QueryClient>
+      <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <CartProvider>
             <Routes>
@@ -50,7 +53,7 @@ function App() {
             <Toaster />
           </CartProvider>
         </AuthProvider>
-      </QueryClient>
+      </QueryClientProvider>
     </BrowserRouter>
   );
 }
