@@ -162,8 +162,12 @@ const ProfilePage: React.FC = () => {
   const handleLogout = async () => {
     try {
       await logout();
+      // Clean up any local storage items that might be causing issues
+      localStorage.removeItem('ayurnest_dosha');
+      
+      // Use direct navigation to force a full page refresh
+      window.location.href = '/';
       toast.success('Logged out successfully');
-      navigate('/login');
     } catch (error) {
       console.error('Logout error:', error);
       toast.error('Failed to logout');

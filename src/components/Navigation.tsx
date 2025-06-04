@@ -15,6 +15,12 @@ const Navigation: React.FC = () => {
     { icon: User, label: 'Profile', path: '/profile' },
   ];
 
+  const handleNavigation = (path: string) => {
+    // Use direct navigation instead of react-router's navigate
+    // This helps with certain navigation issues
+    window.location.href = path;
+  };
+
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 py-2 px-4 z-50">
       <div className="max-w-md mx-auto">
@@ -27,7 +33,7 @@ const Navigation: React.FC = () => {
               <button
                 key={item.path}
                 className="flex flex-col items-center flex-1"
-                onClick={() => navigate(item.path)}
+                onClick={() => handleNavigation(item.path)}
               >
                 <div className={`p-1 ${isActive ? 'text-ayur-primary' : 'text-gray-500'}`}>
                   <Icon size={20} />

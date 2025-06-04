@@ -22,6 +22,7 @@ import NotFound from '@/pages/NotFound';
 import { AuthProvider } from '@/context/AuthContext';
 import { CartProvider } from '@/context/CartContext';
 import FeedbackPage from '@/pages/FeedbackPage';
+import DoshaTest from '@/components/DoshaTest';
 
 const queryClient = new QueryClient();
 
@@ -47,6 +48,9 @@ function App() {
                 <Route path="/remedies/:id" element={<RemedyDetailPage />} />
                 <Route path="/daily-routine" element={<DailyRoutinePage />} />
                 <Route path="/diet" element={<DietPage />} />
+                <Route path="/dosha-test" element={<DoshaTest />} />
+                <Route path="/login" element={<Index initialTab="login" />} />
+                <Route path="/auth" element={<Index initialTab="login" />} />
                 <Route path="*" element={<NotFound />} />
               </Route>
             </Routes>

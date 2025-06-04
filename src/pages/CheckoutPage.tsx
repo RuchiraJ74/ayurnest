@@ -75,7 +75,8 @@ const CheckoutPage: React.FC = () => {
 
     setLoading(true);
     try {
-      const totalWithExtras = totalPrice + 50 + (totalPrice * 0.05);
+      // Total price without shipping fees
+      const totalWithTax = totalPrice + (totalPrice * 0.05);
       const orderDate = new Date().toISOString();
       const deliveryDate = new Date();
       deliveryDate.setDate(deliveryDate.getDate() + 5);
@@ -85,7 +86,7 @@ const CheckoutPage: React.FC = () => {
         .from('orders')
         .insert({
           user_id: user.id,
-          total_amount: totalWithExtras,
+          total_amount: totalWithTax,
           delivery_address: formData.address,
           payment_method: formData.paymentMethod,
           status: 'processing',
@@ -197,7 +198,7 @@ const CheckoutPage: React.FC = () => {
                     <span><strong>Items:</strong> {items.length} product{items.length > 1 ? 's' : ''}</span>
                   </div>
                   <div className="flex justify-between text-sm text-gray-600 mb-2">
-                    <span><strong>Total:</strong> ₹{(totalPrice + 50 + totalPrice * 0.05).toFixed(2)}</span>
+                    <span><strong>Total:</strong> ₹{(totalPrice + totalPrice * 0.05).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-sm text-gray-600">
                     <span><strong>Status:</strong> <span className="text-blue-600 font-medium">Processing</span></span>
@@ -343,17 +344,13 @@ const CheckoutPage: React.FC = () => {
                     <span>₹{totalPrice.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Shipping</span>
-                    <span>₹50.00</span>
-                  </div>
-                  <div className="flex justify-between">
                     <span className="text-gray-600">Tax</span>
                     <span>₹{(totalPrice * 0.05).toFixed(2)}</span>
                   </div>
                   <div className="border-t pt-2 flex justify-between font-bold">
                     <span>Total</span>
                     <span className="text-ayur-primary">
-                      ₹{(totalPrice + 50 + totalPrice * 0.05).toFixed(2)}
+                      ₹{(totalPrice + totalPrice * 0.05).toFixed(2)}
                     </span>
                   </div>
                 </div>

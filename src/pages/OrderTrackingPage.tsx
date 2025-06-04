@@ -36,6 +36,11 @@ const OrderTrackingPage: React.FC = () => {
   useEffect(() => {
     if (user) {
       fetchOrders();
+    } else {
+      // Show loading briefly before redirecting to prevent flash
+      setTimeout(() => {
+        setLoading(false);
+      }, 500);
     }
   }, [user]);
 
@@ -92,23 +97,6 @@ const OrderTrackingPage: React.FC = () => {
     }
   };
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-ayur-light p-4 pb-20">
-        <div className="max-w-md mx-auto pt-6">
-          <Card>
-            <CardContent className="p-6 text-center">
-              <p className="text-gray-600 mb-4">Please sign in to track your orders</p>
-              <Button onClick={() => navigate('/auth')} className="ayur-button">
-                Sign In
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
   if (loading) {
     return (
       <div className="min-h-screen bg-ayur-light p-4 pb-20">
@@ -117,6 +105,23 @@ const OrderTrackingPage: React.FC = () => {
             <div className="h-8 bg-gray-200 rounded mb-4"></div>
             <div className="h-64 bg-gray-200 rounded"></div>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-ayur-light p-4 pb-20">
+        <div className="max-w-md mx-auto pt-6">
+          <Card>
+            <CardContent className="p-6 text-center">
+              <p className="text-gray-600 mb-4">Please sign in to track your orders</p>
+              <Button onClick={() => navigate('/login')} className="ayur-button">
+                Sign In
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
