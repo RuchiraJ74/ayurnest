@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, MapPin, User, Mail, Phone, CreditCard, Check, Calendar, Truck } from 'lucide-react';
+import { ArrowLeft, MapPin, User, Mail, Phone, CreditCard, Check, Calendar, Truck, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,6 +17,7 @@ const CheckoutPage: React.FC = () => {
   const { items, totalPrice, clearCart } = useCart();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orderId, setOrderId] = useState<string>('');
   const [orderDate, setOrderDate] = useState<string>('');
@@ -41,6 +42,25 @@ const CheckoutPage: React.FC = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const validateStep1 = () => {
+    if (!formData.fullName || !formData.email || !formData.phone || !formData.address) {
+      toast.error('Please fill in all required fields');
+      return false;
+    }
+    return true;
+  };
+
+  const handleContinueToPayment = () => {
+    if (validateStep1()) {
+      setCurrentStep(2);
+    }
+  };
+
+  const handlePaymentSelection = (method: string) => {
+    setSelectedPayment(method);
+    setFormData(prev => ({ ...prev, paymentMethod: method }));
+  };
+
   const handlePlaceOrder = async () => {
     if (!user) {
       toast.error('Please sign in to place an order');
@@ -48,8 +68,8 @@ const CheckoutPage: React.FC = () => {
       return;
     }
 
-    if (!formData.fullName || !formData.email || !formData.phone || !formData.address) {
-      toast.error('Please fill in all required fields');
+    if (!selectedPayment) {
+      toast.error('Please select a payment method');
       return;
     }
 
@@ -58,7 +78,7 @@ const CheckoutPage: React.FC = () => {
       const totalWithExtras = totalPrice + 50 + (totalPrice * 0.05);
       const orderDate = new Date().toISOString();
       const deliveryDate = new Date();
-      deliveryDate.setDate(deliveryDate.getDate() + 5); // 5 days from now
+      deliveryDate.setDate(deliveryDate.getDate() + 5);
 
       // Create the order
       const { data: orderData, error: orderError } = await supabase
@@ -69,7 +89,18 @@ const CheckoutPage: React.FC = () => {
           delivery_address: formData.address,
           payment_method: formData.paymentMethod,
           status: 'processing',
-          order_date: orderDate
+          order_date: orderDate,
+          tracking_info: {
+            events: [
+              {
+                status: 'processing',
+                date: orderDate,
+                description: 'Order placed and confirmed'
+              }
+            ],
+            currentStatus: 'processing',
+            estimatedDelivery: deliveryDate.toISOString()
+          }
         })
         .select()
         .single();
@@ -80,13 +111,13 @@ const CheckoutPage: React.FC = () => {
         return;
       }
 
-      // Create order items - store as individual items without product_id reference
+      // Create order items
       const orderItems = items.map(item => ({
         order_id: orderData.id,
         product_name: item.product.name,
         quantity: item.quantity,
         price: item.product.price,
-        product_id: null // Don't reference non-existent products table
+        product_id: null
       }));
 
       const { error: itemsError } = await supabase
@@ -104,6 +135,11 @@ const CheckoutPage: React.FC = () => {
       setEstimatedDelivery(deliveryDate.toISOString());
       setOrderPlaced(true);
       clearCart();
+      
+      if (selectedPayment !== 'cod') {
+        toast.success(`Payment with ${selectedPayment} completed! 🎉`);
+      }
+      
       toast.success('Order placed successfully! 🎉');
     } catch (error) {
       console.error('Checkout error:', error);
@@ -111,17 +147,6 @@ const CheckoutPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handlePaymentSelection = (method: string) => {
-    setSelectedPayment(method);
-    // Here you would integrate with actual payment gateways
-    toast.success(`Payment with ${method} initiated! 💳`);
-    
-    setTimeout(() => {
-      toast.success('Payment completed successfully! 🎉');
-      navigate('/track-order');
-    }, 2000);
   };
 
   const formatDate = (dateString: string) => {
@@ -168,48 +193,39 @@ const CheckoutPage: React.FC = () => {
                 </div>
                 
                 <div className="border-t pt-3">
-                  <p className="text-sm text-gray-600 mb-2">
-                    <strong>Items:</strong> {items.length} product{items.length > 1 ? 's' : ''}
-                  </p>
-                  <p className="text-sm text-gray-600 mb-2">
-                    <strong>Total:</strong> ₹{(totalPrice + 50 + totalPrice * 0.05).toFixed(2)}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    <strong>Status:</strong> <span className="text-blue-600 font-medium">Processing</span>
-                  </p>
+                  <div className="flex justify-between text-sm text-gray-600 mb-2">
+                    <span><strong>Items:</strong> {items.length} product{items.length > 1 ? 's' : ''}</span>
+                  </div>
+                  <div className="flex justify-between text-sm text-gray-600 mb-2">
+                    <span><strong>Total:</strong> ₹{(totalPrice + 50 + totalPrice * 0.05).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm text-gray-600">
+                    <span><strong>Status:</strong> <span className="text-blue-600 font-medium">Processing</span></span>
+                  </div>
                 </div>
               </div>
             </div>
-            
+
+            {/* Order Tracking Steps */}
             <div className="bg-white rounded-lg p-6 mb-6">
-              <h3 className="font-semibold mb-4">Choose Payment Method</h3>
+              <h3 className="font-semibold mb-4">📍 Order Tracking</h3>
               <div className="space-y-3">
-                <button
-                  onClick={() => handlePaymentSelection('Google Pay')}
-                  className="w-full flex items-center justify-center gap-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <PaymentIcon type="googlepay" className="w-8 h-8" />
-                  <span>Pay with Google Pay</span>
-                </button>
-                
-                <button
-                  onClick={() => handlePaymentSelection('PhonePe')}
-                  className="w-full flex items-center justify-center gap-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <PaymentIcon type="phonepe" className="w-8 h-8" />
-                  <span>Pay with PhonePe</span>
-                </button>
-                
-                <button
-                  onClick={() => {
-                    toast.success('Cash on Delivery confirmed! 💰');
-                    navigate('/track-order');
-                  }}
-                  className="w-full flex items-center justify-center gap-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <CreditCard className="w-6 h-6" />
-                  <span>Cash on Delivery</span>
-                </button>
+                <div className="flex items-center gap-3 p-2 bg-green-50 rounded-lg">
+                  <div className="w-4 h-4 bg-green-500 rounded-full"></div>
+                  <span className="text-sm font-medium text-green-800">Order Placed</span>
+                </div>
+                <div className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
+                  <div className="w-4 h-4 bg-gray-300 rounded-full"></div>
+                  <span className="text-sm text-gray-600">Shipped</span>
+                </div>
+                <div className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
+                  <div className="w-4 h-4 bg-gray-300 rounded-full"></div>
+                  <span className="text-sm text-gray-600">Out for Delivery</span>
+                </div>
+                <div className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
+                  <div className="w-4 h-4 bg-gray-300 rounded-full"></div>
+                  <span className="text-sm text-gray-600">Delivered</span>
+                </div>
               </div>
             </div>
             
@@ -221,11 +237,11 @@ const CheckoutPage: React.FC = () => {
                 🚚 Track My Order
               </Button>
               <Button
-                onClick={() => navigate('/home')}
+                onClick={() => navigate('/shop')}
                 variant="outline"
                 className="w-full"
               >
-                Continue Shopping
+                🛒 Continue Shopping
               </Button>
             </div>
           </motion.div>
@@ -242,98 +258,177 @@ const CheckoutPage: React.FC = () => {
             variant="ghost" 
             size="icon" 
             className="mr-2"
-            onClick={() => navigate('/cart')}
+            onClick={() => currentStep === 1 ? navigate('/cart') : setCurrentStep(1)}
           >
             <ArrowLeft size={20} />
           </Button>
           <h1 className="text-2xl font-bold font-playfair text-ayur-secondary">Checkout</h1>
         </div>
 
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User size={20} />
-                Personal Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Input
-                placeholder="Full Name"
-                value={formData.fullName}
-                onChange={(e) => handleInputChange('fullName', e.target.value)}
-                required
-              />
-              <Input
-                type="email"
-                placeholder="Email"
-                value={formData.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
-                required
-              />
-              <Input
-                type="tel"
-                placeholder="Phone Number"
-                value={formData.phone}
-                onChange={(e) => handleInputChange('phone', e.target.value)}
-                required
-              />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MapPin size={20} />
-                Delivery Address
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Input
-                placeholder="Complete Address"
-                value={formData.address}
-                onChange={(e) => handleInputChange('address', e.target.value)}
-                required
-              />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Order Summary</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Subtotal</span>
-                  <span>₹{totalPrice.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Shipping</span>
-                  <span>₹50.00</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Tax</span>
-                  <span>₹{(totalPrice * 0.05).toFixed(2)}</span>
-                </div>
-                <div className="border-t pt-2 flex justify-between font-bold">
-                  <span>Total</span>
-                  <span className="text-ayur-primary">
-                    ₹{(totalPrice + 50 + totalPrice * 0.05).toFixed(2)}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Button
-            onClick={handlePlaceOrder}
-            disabled={loading}
-            className="ayur-button w-full py-6"
-          >
-            {loading ? "Processing..." : "Place Order"}
-          </Button>
+        {/* Step Indicator */}
+        <div className="flex items-center justify-center mb-6">
+          <div className={`flex items-center ${currentStep >= 1 ? 'text-ayur-primary' : 'text-gray-400'}`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep >= 1 ? 'bg-ayur-primary text-white' : 'bg-gray-200'}`}>
+              1
+            </div>
+            <span className="ml-2 text-sm">Details</span>
+          </div>
+          <div className={`w-8 h-0.5 mx-2 ${currentStep >= 2 ? 'bg-ayur-primary' : 'bg-gray-200'}`}></div>
+          <div className={`flex items-center ${currentStep >= 2 ? 'text-ayur-primary' : 'text-gray-400'}`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep >= 2 ? 'bg-ayur-primary text-white' : 'bg-gray-200'}`}>
+              2
+            </div>
+            <span className="ml-2 text-sm">Payment</span>
+          </div>
         </div>
+
+        {currentStep === 1 && (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User size={20} />
+                  Personal Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Input
+                  placeholder="Full Name"
+                  value={formData.fullName}
+                  onChange={(e) => handleInputChange('fullName', e.target.value)}
+                  required
+                />
+                <Input
+                  type="email"
+                  placeholder="Email"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  required
+                />
+                <Input
+                  type="tel"
+                  placeholder="Phone Number"
+                  value={formData.phone}
+                  onChange={(e) => handleInputChange('phone', e.target.value)}
+                  required
+                />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MapPin size={20} />
+                  Delivery Address
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Input
+                  placeholder="Complete Address"
+                  value={formData.address}
+                  onChange={(e) => handleInputChange('address', e.target.value)}
+                  required
+                />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Order Summary</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Subtotal</span>
+                    <span>₹{totalPrice.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Shipping</span>
+                    <span>₹50.00</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Tax</span>
+                    <span>₹{(totalPrice * 0.05).toFixed(2)}</span>
+                  </div>
+                  <div className="border-t pt-2 flex justify-between font-bold">
+                    <span>Total</span>
+                    <span className="text-ayur-primary">
+                      ₹{(totalPrice + 50 + totalPrice * 0.05).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Button
+              onClick={handleContinueToPayment}
+              className="ayur-button w-full py-6"
+            >
+              Continue <ArrowRight className="ml-2" size={20} />
+            </Button>
+          </div>
+        )}
+
+        {currentStep === 2 && (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CreditCard size={20} />
+                  Payment Method
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <button
+                  onClick={() => handlePaymentSelection('googlepay')}
+                  className={`w-full flex items-center justify-between p-4 border-2 rounded-lg transition-colors ${
+                    selectedPayment === 'googlepay' ? 'border-ayur-primary bg-ayur-light' : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <PaymentIcon type="googlepay" className="w-8 h-8" />
+                    <span className="font-medium">Google Pay</span>
+                  </div>
+                  <div className={`w-4 h-4 rounded-full border-2 ${selectedPayment === 'googlepay' ? 'bg-ayur-primary border-ayur-primary' : 'border-gray-300'}`}></div>
+                </button>
+                
+                <button
+                  onClick={() => handlePaymentSelection('phonepe')}
+                  className={`w-full flex items-center justify-between p-4 border-2 rounded-lg transition-colors ${
+                    selectedPayment === 'phonepe' ? 'border-ayur-primary bg-ayur-light' : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <PaymentIcon type="phonepe" className="w-8 h-8" />
+                    <span className="font-medium">PhonePe</span>
+                  </div>
+                  <div className={`w-4 h-4 rounded-full border-2 ${selectedPayment === 'phonepe' ? 'bg-ayur-primary border-ayur-primary' : 'border-gray-300'}`}></div>
+                </button>
+                
+                <button
+                  onClick={() => handlePaymentSelection('cod')}
+                  className={`w-full flex items-center justify-between p-4 border-2 rounded-lg transition-colors ${
+                    selectedPayment === 'cod' ? 'border-ayur-primary bg-ayur-light' : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <CreditCard className="w-6 h-6 text-gray-600" />
+                    <span className="font-medium">Cash on Delivery</span>
+                  </div>
+                  <div className={`w-4 h-4 rounded-full border-2 ${selectedPayment === 'cod' ? 'bg-ayur-primary border-ayur-primary' : 'border-gray-300'}`}></div>
+                </button>
+              </CardContent>
+            </Card>
+
+            <Button
+              onClick={handlePlaceOrder}
+              disabled={loading || !selectedPayment}
+              className="ayur-button w-full py-6"
+            >
+              {loading ? "Processing..." : "Place Order"}
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
