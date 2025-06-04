@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { User, Mail, Phone, MapPin, Settings, Heart, Package, LogOut, Edit3, Camera, ArrowLeft } from 'lucide-react';
@@ -121,26 +120,6 @@ const ProfilePage: React.FC = () => {
       setOrderCount(count || 0);
     } catch (error) {
       console.error('Error in fetchOrderCount:', error);
-    }
-  };
-
-  const fetchFavoritesCount = async () => {
-    if (!user) return;
-
-    try {
-      const { count, error } = await supabase
-        .from('favorites')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id);
-
-      if (error) {
-        console.error('Error fetching favorites count:', error);
-        return;
-      }
-
-      setFavoritesCount(count || 0);
-    } catch (error) {
-      console.error('Error in fetchFavoritesCount:', error);
     }
   };
 
