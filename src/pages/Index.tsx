@@ -12,6 +12,7 @@ interface IndexProps {
 
 const Index: React.FC<IndexProps> = ({ initialTab = 'welcome' }) => {
   const [activeTab, setActiveTab] = useState<string>(initialTab);
+  const [isLogin, setIsLogin] = useState(true);
   const navigate = useNavigate();
 
   return (
@@ -38,7 +39,11 @@ const Index: React.FC<IndexProps> = ({ initialTab = 'welcome' }) => {
             </TabsContent>
             
             <TabsContent value="login">
-              <AuthForms onSuccess={() => navigate('/home')} />
+              <AuthForms 
+                isLogin={isLogin}
+                onToggle={() => setIsLogin(!isLogin)}
+                onSuccess={() => navigate('/home')} 
+              />
             </TabsContent>
           </Tabs>
         </motion.div>
