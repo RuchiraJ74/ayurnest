@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -23,6 +22,8 @@ const CheckoutPage: React.FC = () => {
   const [orderDate, setOrderDate] = useState<string>('');
   const [estimatedDelivery, setEstimatedDelivery] = useState<string>('');
   const [selectedPayment, setSelectedPayment] = useState<string>('');
+  const [orderTotal, setOrderTotal] = useState<number>(0);
+  const [orderItemCount, setOrderItemCount] = useState<number>(0);
   
   const [formData, setFormData] = useState({
     fullName: '',
@@ -75,11 +76,15 @@ const CheckoutPage: React.FC = () => {
 
     setLoading(true);
     try {
-      // Total price without shipping fees
+      // Calculate total with tax only (no shipping)
       const totalWithTax = totalPrice + (totalPrice * 0.05);
       const orderDate = new Date().toISOString();
       const deliveryDate = new Date();
       deliveryDate.setDate(deliveryDate.getDate() + 5);
+
+      // Store order details for display
+      setOrderTotal(totalWithTax);
+      setOrderItemCount(items.reduce((sum, item) => sum + item.quantity, 0));
 
       // Create the order
       const { data: orderData, error: orderError } = await supabase
@@ -195,10 +200,10 @@ const CheckoutPage: React.FC = () => {
                 
                 <div className="border-t pt-3">
                   <div className="flex justify-between text-sm text-gray-600 mb-2">
-                    <span><strong>Items:</strong> {items.length} product{items.length > 1 ? 's' : ''}</span>
+                    <span><strong>Items:</strong> {orderItemCount} product{orderItemCount > 1 ? 's' : ''}</span>
                   </div>
                   <div className="flex justify-between text-sm text-gray-600 mb-2">
-                    <span><strong>Total:</strong> ₹{(totalPrice + totalPrice * 0.05).toFixed(2)}</span>
+                    <span><strong>Total:</strong> ₹{orderTotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-sm text-gray-600">
                     <span><strong>Status:</strong> <span className="text-blue-600 font-medium">Processing</span></span>
@@ -340,7 +345,7 @@ const CheckoutPage: React.FC = () => {
               <CardContent className="space-y-3">
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Subtotal</span>
+                    <span className="text-gray-600">Price</span>
                     <span>₹{totalPrice.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">

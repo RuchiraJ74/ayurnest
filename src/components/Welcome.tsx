@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -22,7 +21,11 @@ const Welcome: React.FC<WelcomeProps> = ({ onGetStarted }) => {
   };
 
   const handleLogin = () => {
-    navigate('/login');
+    if (onGetStarted) {
+      onGetStarted();
+    } else {
+      navigate('/login');
+    }
   };
 
   return (

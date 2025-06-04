@@ -51,6 +51,8 @@ const ProfilePage: React.FC = () => {
     if (user) {
       fetchUserProfile();
       fetchOrderCount();
+    } else {
+      setLoading(false);
     }
   }, [user]);
 
@@ -62,7 +64,7 @@ const ProfilePage: React.FC = () => {
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
         console.error('Error fetching profile:', error);
@@ -162,11 +164,8 @@ const ProfilePage: React.FC = () => {
   const handleLogout = async () => {
     try {
       await logout();
-      // Clean up any local storage items that might be causing issues
       localStorage.removeItem('ayurnest_dosha');
-      
-      // Use direct navigation to force a full page refresh
-      window.location.href = '/';
+      navigate('/');
       toast.success('Logged out successfully');
     } catch (error) {
       console.error('Logout error:', error);
@@ -245,7 +244,7 @@ const ProfilePage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-ayur-light p-4 pb-20">
+    <div className="min-h-screen bg-ayur-light p-4 pb-20 overflow-y-auto">
       <div className="max-w-4xl mx-auto pt-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

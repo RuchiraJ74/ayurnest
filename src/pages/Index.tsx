@@ -15,6 +15,16 @@ const Index: React.FC<IndexProps> = ({ initialTab = 'welcome' }) => {
   const [isLogin, setIsLogin] = useState(true);
   const navigate = useNavigate();
 
+  const handleGetStarted = () => {
+    setIsLogin(false); // Set to sign-up mode
+    setActiveTab('login');
+  };
+
+  const handleLogin = () => {
+    setIsLogin(true); // Set to sign-in mode
+    setActiveTab('login');
+  };
+
   return (
     <div className="min-h-screen bg-ayur-light flex flex-col">
       <div className="flex-1 flex items-center justify-center px-4 py-12">
@@ -31,11 +41,11 @@ const Index: React.FC<IndexProps> = ({ initialTab = 'welcome' }) => {
           >
             <TabsList className="grid grid-cols-2 mb-8">
               <TabsTrigger value="welcome">Welcome</TabsTrigger>
-              <TabsTrigger value="login">Sign In</TabsTrigger>
+              <TabsTrigger value="login">{isLogin ? 'Sign In' : 'Sign Up'}</TabsTrigger>
             </TabsList>
             
             <TabsContent value="welcome">
-              <Welcome onGetStarted={() => setActiveTab('login')} />
+              <Welcome onGetStarted={handleGetStarted} />
             </TabsContent>
             
             <TabsContent value="login">
