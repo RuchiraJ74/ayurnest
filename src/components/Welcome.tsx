@@ -5,12 +5,20 @@ import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-const Welcome: React.FC = () => {
+interface WelcomeProps {
+  onGetStarted?: () => void;
+}
+
+const Welcome: React.FC<WelcomeProps> = ({ onGetStarted }) => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
 
   const handleGetStarted = () => {
-    navigate('/signup');
+    if (onGetStarted) {
+      onGetStarted();
+    } else {
+      navigate('/signup');
+    }
   };
 
   const handleLogin = () => {

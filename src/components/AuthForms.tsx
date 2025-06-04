@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, User, Mail, Lock, ArrowRight, Sparkles } from 'lucide-react';
@@ -10,9 +11,10 @@ import { useNavigate } from 'react-router-dom';
 interface AuthFormsProps {
   isLogin: boolean;
   onToggle: () => void;
+  onSuccess?: () => void;
 }
 
-const AuthForms: React.FC<AuthFormsProps> = ({ isLogin, onToggle }) => {
+const AuthForms: React.FC<AuthFormsProps> = ({ isLogin, onToggle, onSuccess }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
@@ -37,7 +39,11 @@ const AuthForms: React.FC<AuthFormsProps> = ({ isLogin, onToggle }) => {
         toast.error(result.error.message || 'Authentication failed');
       } else {
         toast.success(isLogin ? 'Welcome back! 🌟' : 'Account created successfully! 🎉');
-        navigate('/home');
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          navigate('/home');
+        }
       }
     } catch (error: any) {
       toast.error(error.message || 'Something went wrong');
@@ -51,7 +57,11 @@ const AuthForms: React.FC<AuthFormsProps> = ({ isLogin, onToggle }) => {
     try {
       await loginAsDemo();
       toast.success('Welcome to AyurNest Demo! 🌿✨');
-      navigate('/home');
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        navigate('/home');
+      }
     } catch (error: any) {
       toast.error('Demo login failed');
     } finally {
