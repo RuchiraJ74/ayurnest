@@ -1,14 +1,12 @@
+
 import React from 'react';
+import { Outlet } from 'react-router-dom';
 import Navigation from './Navigation';
 
-interface AppLayoutProps {
-  children: React.ReactNode;
-}
-
-const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
+const AppLayout: React.FC = () => {
   return (
     <>
-      {children}
+      <Outlet />
       <Navigation />
     </>
   );
